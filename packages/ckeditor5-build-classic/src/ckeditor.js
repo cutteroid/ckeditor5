@@ -12,8 +12,8 @@ import Autoformat from '@ckeditor/ckeditor5-autoformat/src/autoformat';
 import Bold from '@ckeditor/ckeditor5-basic-styles/src/bold';
 import Italic from '@ckeditor/ckeditor5-basic-styles/src/italic';
 import BlockQuote from '@ckeditor/ckeditor5-block-quote/src/blockquote';
-import CKFinder from '@ckeditor/ckeditor5-ckfinder/src/ckfinder';
-import EasyImage from '@ckeditor/ckeditor5-easy-image/src/easyimage';
+// import CKFinder from '@ckeditor/ckeditor5-ckfinder/src/ckfinder';
+// import EasyImage from '@ckeditor/ckeditor5-easy-image/src/easyimage';
 import Heading from '@ckeditor/ckeditor5-heading/src/heading';
 import Image from '@ckeditor/ckeditor5-image/src/image';
 import ImageCaption from '@ckeditor/ckeditor5-image/src/imagecaption';
@@ -23,12 +23,26 @@ import ImageUpload from '@ckeditor/ckeditor5-image/src/imageupload';
 import Indent from '@ckeditor/ckeditor5-indent/src/indent';
 import Link from '@ckeditor/ckeditor5-link/src/link';
 import List from '@ckeditor/ckeditor5-list/src/list';
-import MediaEmbed from '@ckeditor/ckeditor5-media-embed/src/mediaembed';
+// import MediaEmbed from '@ckeditor/ckeditor5-media-embed/src/mediaembed';
 import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph';
 import PasteFromOffice from '@ckeditor/ckeditor5-paste-from-office/src/pastefromoffice';
 import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
+
+import Autosave from '@ckeditor/ckeditor5-autosave/src/autosave';
+import HeadingButtonsUI from '@ckeditor/ckeditor5-heading/src/headingbuttonsui';
+import Strikethrough from '@ckeditor/ckeditor5-basic-styles/src/strikethrough';
+import Code from '@ckeditor/ckeditor5-basic-styles/src/code';
+import Subscript from '@ckeditor/ckeditor5-basic-styles/src/subscript';
+import Superscript from '@ckeditor/ckeditor5-basic-styles/src/superscript';
+import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline';
+import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock';
+import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize'
+
+import EmbedWidget from '../../custom-embedWidget/embedwidget';
+import ImagePanel from '../../custom-imagePanel/imagepanel';
+import Fullscreen from '../../custom-fullscreen/fullscreen';
 
 export default class ClassicEditor extends ClassicEditorBase {}
 
@@ -40,8 +54,8 @@ ClassicEditor.builtinPlugins = [
 	Bold,
 	Italic,
 	BlockQuote,
-	CKFinder,
-	EasyImage,
+	// CKFinder,
+	// EasyImage,
 	Heading,
 	Image,
 	ImageCaption,
@@ -51,12 +65,26 @@ ClassicEditor.builtinPlugins = [
 	Indent,
 	Link,
 	List,
-	MediaEmbed,
+	// MediaEmbed,
 	Paragraph,
 	PasteFromOffice,
 	Table,
 	TableToolbar,
-	TextTransformation
+	TextTransformation,
+
+	Autosave,
+	HeadingButtonsUI,
+	Strikethrough,
+	Code,
+	CodeBlock,
+	Subscript,
+	Superscript,
+	Underline,
+	ImageResize,
+
+	ImagePanel,
+	Fullscreen,
+	EmbedWidget
 ];
 
 // Editor configuration.
