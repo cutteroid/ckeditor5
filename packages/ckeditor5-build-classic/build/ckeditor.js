@@ -1,4 +1,7 @@
 /*!
+ * Build date: Fri Jul 17 2020 13:40:56 GMT+0300 (Eastern European Summer Time)
+ */
+/*!
  * @license Copyright (c) 2003-2020, CKSource - Frederico Knabben. All rights reserved.
  * For licensing, see LICENSE.md.
  */
