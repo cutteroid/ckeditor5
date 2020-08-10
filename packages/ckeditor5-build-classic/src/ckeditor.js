@@ -40,7 +40,7 @@ import Underline from '@ckeditor/ckeditor5-basic-styles/src/underline';
 import CodeBlock from '@ckeditor/ckeditor5-code-block/src/codeblock';
 import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize'
 
-// import EmbedWidget from '../../custom-embedWidget/embedwidget';
+import EmbedWidget from '../../custom-embedWidget/embedwidget';
 import ImagePanel from '../../custom-imagePanel/imagepanel';
 import Fullscreen from '../../custom-fullscreen/fullscreen';
 
@@ -82,7 +82,7 @@ ClassicEditor.builtinPlugins = [
 	Underline,
 	ImageResize,
 
-	// EmbedWidget,
+	EmbedWidget,
 	ImagePanel,
 	Fullscreen
 ];
