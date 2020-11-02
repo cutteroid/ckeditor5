@@ -559,12 +559,12 @@ describe( 'TodoListEditing', () => {
 
 			editor.conversion.for( 'downcast' ).markerToElement( {
 				model: 'element1',
-				view: ( data, writer ) => writer.createUIElement( 'element1' )
+				view: ( data, { writer } ) => writer.createUIElement( 'element1' )
 			} );
 
 			editor.conversion.for( 'downcast' ).markerToElement( {
 				model: 'element2',
-				view: ( data, writer ) => writer.createUIElement( 'element2' )
+				view: ( data, { writer } ) => writer.createUIElement( 'element2' )
 			} );
 
 			editor.conversion.for( 'downcast' ).markerToHighlight( {
@@ -1180,7 +1180,7 @@ describe( 'TodoListEditing', () => {
 	} );
 } );
 
-describe( 'TodoListEditing', () => {
+describe( 'TodoListEditing - checkbox rendering', () => {
 	let editorElement, editor, model, modelDoc, view, viewDoc, viewRoot;
 
 	beforeEach( () => {

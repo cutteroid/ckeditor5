@@ -10,6 +10,7 @@
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 import TextWatcher from '@ckeditor/ckeditor5-typing/src/textwatcher';
 import getLastTextLine from '@ckeditor/ckeditor5-typing/src/utils/getlasttextline';
+import { addLinkProtocolIfApplicable } from './utils';
 
 const MIN_LINK_LENGTH_WITH_SPACE_AT_END = 4; // Ie: "t.co " (length 5).
 
@@ -49,11 +50,8 @@ const URL_REG_EXP = new RegExp(
 
 const URL_GROUP_IN_MATCH = 2;
 
-// Simplified email test - should be run over previously found URL.
-const EMAIL_REG_EXP = /^[\S]+@((?![-_])(?:[-\w\u00a1-\uffff]{0,63}[^-_]\.))+(?:[a-z\u00a1-\uffff]{2,})$/i;
-
 /**
- * The auto link plugin.
+ * The autolink plugin.
  *
  * @extends module:core/plugin~Plugin
  */
@@ -89,7 +87,7 @@ export default class AutoLink extends Plugin {
 	}
 
 	/**
-	 * Enables auto-link on typing.
+	 * Enables autolinking on typing.
 	 *
 	 * @private
 	 */
@@ -97,12 +95,12 @@ export default class AutoLink extends Plugin {
 		const editor = this.editor;
 
 		const watcher = new TextWatcher( editor.model, text => {
-			// 1. Detect "space" after a text with a potential link.
+			// 1. Detect "Space" after a text with a potential link.
 			if ( !isSingleSpaceAtTheEnd( text ) ) {
 				return;
 			}
 
-			// 2. Check text before last typed "space".
+			// 2. Check text before last typed "Space".
 			const url = getUrlAtTextEnd( text.substr( 0, text.length - 1 ) );
 
 			if ( url ) {
@@ -131,7 +129,7 @@ export default class AutoLink extends Plugin {
 	}
 
 	/**
-	 * Enables auto-link on <kbd>enter</kbd> key.
+	 * Enables autolinking on the <kbd>Enter</kbd> key.
 	 *
 	 * @private
 	 */
@@ -147,17 +145,18 @@ export default class AutoLink extends Plugin {
 		enterCommand.on( 'execute', () => {
 			const position = model.document.selection.getFirstPosition();
 
-			const rangeToCheck = model.createRange(
-				model.createPositionAt( position.parent.previousSibling, 0 ),
-				model.createPositionAt( position.parent.previousSibling, 'end' )
-			);
+			if ( !position.parent.previousSibling ) {
+				return;
+			}
+
+			const rangeToCheck = model.createRangeIn( position.parent.previousSibling );
 
 			this._checkAndApplyAutoLinkOnRange( rangeToCheck );
 		} );
 	}
 
 	/**
-	 * Enables auto-link on <kbd>shift</kbd>+<kbd>enter</kbd> key.
+	 * Enables autolinking on the <kbd>Shift</kbd>+<kbd>Enter</kbd> keyboard shortcut.
 	 *
 	 * @private
 	 */
@@ -184,7 +183,7 @@ export default class AutoLink extends Plugin {
 	}
 
 	/**
-	 * Checks passed range if it contains a linkable text.
+	 * Checks if the passed range contains a linkable text.
 	 *
 	 * @param {module:engine/model/range~Range} rangeToCheck
 	 * @private
@@ -206,13 +205,13 @@ export default class AutoLink extends Plugin {
 	}
 
 	/**
-	 * Applies link on a given range.
+	 * Applies a link on a given range.
 	 *
-	 * @param {String} url URL to link.
-	 * @param {module:engine/model/range~Range} range Text range to apply link attribute.
+	 * @param {String} url The URL to link.
+	 * @param {module:engine/model/range~Range} range The text range to apply the link attribute to.
 	 * @private
 	 */
-	_applyAutoLink( url, range ) {
+	_applyAutoLink( link, range ) {
 		const model = this.editor.model;
 
 		if ( !this.isEnabled || !isLinkAllowedOnRange( range, model ) ) {
@@ -221,9 +220,9 @@ export default class AutoLink extends Plugin {
 
 		// Enqueue change to make undo step.
 		model.enqueueChange( writer => {
-			const linkHrefValue = isEmail( url ) ? `mailto:${ url }` : url;
-
-			writer.setAttribute( 'linkHref', linkHrefValue, range );
+			const defaultProtocol = this.editor.config.get( 'link.defaultProtocol' );
+			const parsedUrl = addLinkProtocolIfApplicable( link, defaultProtocol );
+			writer.setAttribute( 'linkHref', parsedUrl, range );
 		} );
 	}
 }
@@ -237,10 +236,6 @@ function getUrlAtTextEnd( text ) {
 	const match = URL_REG_EXP.exec( text );
 
 	return match ? match[ URL_GROUP_IN_MATCH ] : null;
-}
-
-function isEmail( linkHref ) {
-	return EMAIL_REG_EXP.exec( linkHref );
 }
 
 function isLinkAllowedOnRange( range, model ) {

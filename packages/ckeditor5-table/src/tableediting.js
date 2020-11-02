@@ -9,8 +9,9 @@
 
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
 
-import upcastTable, { upcastTableCell, skipEmptyTableRow } from './converters/upcasttable';
+import upcastTable, { skipEmptyTableRow } from './converters/upcasttable';
 import {
+	convertParagraphInTableCell,
 	downcastInsertCell,
 	downcastInsertRow,
 	downcastInsertTable,
@@ -64,7 +65,6 @@ export default class TableEditing extends Plugin {
 		schema.register( 'table', {
 			allowWhere: '$block',
 			allowAttributes: [ 'headingRows', 'headingColumns' ],
-			isLimit: true,
 			isObject: true,
 			isBlock: true
 		} );
@@ -77,7 +77,8 @@ export default class TableEditing extends Plugin {
 		schema.register( 'tableCell', {
 			allowIn: 'tableRow',
 			allowAttributes: [ 'colspan', 'rowspan' ],
-			isObject: true
+			isLimit: true,
+			isSelectable: true
 		} );
 
 		// Allow all $block content inside table cell.
@@ -104,10 +105,17 @@ export default class TableEditing extends Plugin {
 		conversion.for( 'editingDowncast' ).add( downcastRemoveRow() );
 
 		// Table cell conversion.
-		conversion.for( 'upcast' ).add( upcastTableCell( 'td' ) );
-		conversion.for( 'upcast' ).add( upcastTableCell( 'th' ) );
+		conversion.for( 'upcast' ).elementToElement( { model: 'tableCell', view: 'td' } );
+		conversion.for( 'upcast' ).elementToElement( { model: 'tableCell', view: 'th' } );
 
 		conversion.for( 'editingDowncast' ).add( downcastInsertCell() );
+
+		// Duplicates code - needed to properly refresh paragraph inside table cell.
+		editor.conversion.for( 'editingDowncast' ).elementToElement( {
+			model: 'paragraph',
+			view: convertParagraphInTableCell,
+			converterPriority: 'high'
+		} );
 
 		// Table attributes conversion.
 		conversion.attributeToAttribute( { model: 'colspan', view: 'colspan' } );
@@ -144,7 +152,7 @@ export default class TableEditing extends Plugin {
 
 		injectTableHeadingRowsRefreshPostFixer( model );
 		injectTableLayoutPostFixer( model );
-		injectTableCellRefreshPostFixer( model );
+		injectTableCellRefreshPostFixer( model, editor.editing.mapper );
 		injectTableCellParagraphPostFixer( model );
 	}
 

@@ -250,6 +250,12 @@ describe( 'DataController utils', () => {
 			);
 
 			test(
+				'do not remove end block if selection ends at start position of it (multiple paragraphs)',
+				'<paragraph>x</paragraph><paragraph>[foo</paragraph><paragraph>a</paragraph><paragraph>]bar</paragraph>',
+				'<paragraph>x</paragraph><paragraph>[]</paragraph><paragraph>bar</paragraph>'
+			);
+
+			test(
 				'removes empty element (merges it into second element)',
 				'<paragraph>x</paragraph><paragraph>[</paragraph><paragraph>]bar</paragraph><paragraph>y</paragraph>',
 				'<paragraph>x</paragraph><paragraph>[]bar</paragraph><paragraph>y</paragraph>'
@@ -941,10 +947,15 @@ describe( 'DataController utils', () => {
 					{ rootName: 'bodyRoot' }
 				);
 
-				deleteContent( model, doc.selection, { doNotAutoparagraph: true } );
+				// This must be tested inside a change block to check results before the post-fixers get triggered.
+				model.change( () => {
+					deleteContent( model, doc.selection, { doNotAutoparagraph: true } );
 
-				expect( getData( model, { rootName: 'bodyRoot' } ) )
-					.to.equal( '[]' );
+					expect( getData( model, { rootName: 'bodyRoot' } ) ).to.equal( '[]' );
+				} );
+
+				// Note that auto-paragraphing post-fixer injected a paragraph into the empty root.
+				expect( getData( model, { rootName: 'bodyRoot' } ) ).to.equal( '<paragraph>[]</paragraph>' );
 			} );
 		} );
 

@@ -14,6 +14,7 @@ const CKEditorWebpackPlugin = require( '@ckeditor/ckeditor5-dev-webpack-plugin' 
 const MiniCssExtractPlugin = require( 'mini-css-extract-plugin' );
 const TerserPlugin = require( 'terser-webpack-plugin' );
 const ProgressBarPlugin = require( 'progress-bar-webpack-plugin' );
+const glob = require( 'glob' );
 
 const DEFAULT_LANGUAGE = 'en';
 const MULTI_LANGUAGE = 'multi-language';
@@ -22,7 +23,8 @@ const MULTI_LANGUAGE = 'multi-language';
  * @param {Set.<Snippet>} snippets Snippet collection extracted from documentation files.
  * @param {Object} options
  * @param {Boolean} options.production Whether to build snippets in production mode.
- * @param {Array.<String>|undefined} options.allowedSnippets An array that contains glob patterns.
+ * @param {Array.<String>|undefined} options.allowedSnippets An array that contains glob patterns of snippets that should be built.
+ * If not specified or if passed the empty array, all snippets will be built.
  * @param {Object.<String, Function>} umbertoHelpers
  * @returns {Promise}
  */
@@ -81,17 +83,16 @@ module.exports = function snippetAdapter( snippets, options, umbertoHelpers ) {
 	}
 
 	// Remove snippets that do not match to patterns specified in `options.allowedSnippets`.
-	if ( options.allowedSnippets ) {
+	if ( options.allowedSnippets && options.allowedSnippets.length ) {
 		filterAllowedSnippets( snippets, options.allowedSnippets );
-	}
-
-	if ( options.allowedSnippets.length ) {
 		console.log( `Found ${ snippets.size } matching {@snippet} tags.` );
 	}
 
 	console.log( `Building ${ countUniqueSnippets( snippets ) } snippets...` );
 
 	const groupedSnippetsByLanguage = {};
+
+	const constantDefinitions = getConstantDefinitions( snippets );
 
 	// Group snippets by language. There is no way to build different languages in a single Webpack process.
 	// Webpack must be called as many times as different languages are being used in snippets.
@@ -115,7 +116,10 @@ module.exports = function snippetAdapter( snippets, options, umbertoHelpers ) {
 			return getWebpackConfig( groupedSnippetsByLanguage[ language ], {
 				language,
 				production: options.production,
-				definitions: options.definitions || {}
+				definitions: {
+					...( options.definitions || {} ),
+					...constantDefinitions
+				}
 			} );
 		} );
 
@@ -199,7 +203,7 @@ module.exports = function snippetAdapter( snippets, options, umbertoHelpers ) {
 				}
 
 				const cssImportsHTML = getHTMLImports( cssFiles, importPath => {
-					return `    <link rel="stylesheet" href="${ importPath }" type="text/css">`;
+					return `    <link rel="stylesheet" href="${ importPath }" type="text/css" data-cke="true">`;
 				} );
 
 				const jsImportsHTML = getHTMLImports( jsFiles, importPath => {
@@ -221,13 +225,9 @@ module.exports = function snippetAdapter( snippets, options, umbertoHelpers ) {
  * Removes snippets that names do not match to patterns specified in `allowedSnippets` array.
  *
  * @param {Set.<Snippet>} snippets Snippet collection extracted from documentation files.
- * @param {Array.<String>|undefined} allowedSnippets Snippet patterns that should be built.
+ * @param {Array.<String>} allowedSnippets Snippet patterns that should be built.
  */
 function filterAllowedSnippets( snippets, allowedSnippets ) {
-	if ( !allowedSnippets.length ) {
-		return;
-	}
-
 	const snippetsToBuild = new Set();
 
 	// Find all snippets that matched to specified criteria.
@@ -258,6 +258,57 @@ function filterAllowedSnippets( snippets, allowedSnippets ) {
 			snippets.delete( snippetData );
 		}
 	}
+}
+
+/**
+ * Adds constants to the webpack process from external repositories containing `docs/constants.js` files.
+ *
+ * @param {Array.<Object>} snippets
+ * @returns {Object}
+ */
+function getConstantDefinitions( snippets ) {
+	const knownPaths = new Set();
+	const constantDefinitions = {};
+	const constantOrigins = new Map();
+
+	for ( const snippet of snippets ) {
+		if ( !snippet.pageSourcePath ) {
+			continue;
+		}
+
+		let directory = path.dirname( snippet.pageSourcePath );
+
+		while ( !knownPaths.has( directory ) ) {
+			knownPaths.add( directory );
+
+			const absolutePathToConstants = path.join( directory, 'docs', 'constants.js' );
+			const importPathToConstants = path.posix.relative( __dirname, absolutePathToConstants );
+
+			if ( fs.existsSync( absolutePathToConstants ) ) {
+				const packageConstantDefinitions = require( './' + importPathToConstants );
+
+				for ( const constantName in packageConstantDefinitions ) {
+					const constantValue = packageConstantDefinitions[ constantName ];
+
+					if ( constantDefinitions[ constantName ] && constantDefinitions[ constantName ] !== constantValue ) {
+						throw new Error(
+							`Definition for the '${ constantName }' constant is duplicated` +
+							` (${ importPathToConstants }, ${ constantOrigins.get( constantName ) }).`
+						);
+					}
+
+					constantDefinitions[ constantName ] = constantValue;
+					constantOrigins.set( constantName, importPathToConstants );
+				}
+
+				Object.assign( constantDefinitions, packageConstantDefinitions );
+			}
+
+			directory = path.dirname( directory );
+		}
+	}
+
+	return constantDefinitions;
 }
 
 /**
@@ -306,8 +357,6 @@ function getWebpackConfig( snippets, config ) {
 	const webpackConfig = {
 		mode: config.production ? 'production' : 'development',
 
-		devtool: 'source-map',
-
 		entry: {},
 
 		output: {
@@ -345,7 +394,10 @@ function getWebpackConfig( snippets, config ) {
 		// Configure the paths so building CKEditor 5 snippets work even if the script
 		// is triggered from a directory outside ckeditor5 (e.g. multi-project case).
 		resolve: {
-			modules: getModuleResolvePaths()
+			modules: [
+				...getPackageDependenciesPaths(),
+				...getModuleResolvePaths()
+			]
 		},
 
 		resolveLoader: {
@@ -421,6 +473,24 @@ function getModuleResolvePaths() {
 		path.resolve( __dirname, '..', '..', 'node_modules' ),
 		'node_modules'
 	];
+}
+
+/**
+ * Returns an array that contains paths to packages' dependencies.
+ * The snippet adapter should use packages' dependencies instead of the documentation builder dependencies.
+ *
+ * See #7916.
+ *
+ * @returns {Array.<String>}
+ */
+function getPackageDependenciesPaths() {
+	const globOptions = {
+		cwd: path.resolve( __dirname, '..', '..' ),
+		absolute: true
+	};
+
+	return glob.sync( 'packages/*/node_modules', globOptions )
+		.concat( glob.sync( 'external/*/packages/*/node_modules', globOptions ) );
 }
 
 /**
