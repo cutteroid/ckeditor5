@@ -39,10 +39,10 @@ export default class EmbedWidgetEditing extends Plugin {
 		// Model -> Data
 		conversion.for( 'dataDowncast' ).elementToElement( {
 			model: 'embedWidget',
-			view: ( modelElement, viewWriter ) => {
+			view: ( modelElement, { writer } ) => {
 				var data = this._getAttributesData(modelElement);
 
-				return createMediaFigureElement( viewWriter, registry, data );
+				return createMediaFigureElement( writer, registry, data );
 			}
 		} );
 
@@ -52,13 +52,12 @@ export default class EmbedWidgetEditing extends Plugin {
 
 		conversion.for( 'editingDowncast' ).elementToElement( {
 			model: 'embedWidget',
-			view: ( modelElement, viewWriter ) => {
+			view: ( modelElement, { writer } ) => {
 				var data = this._getAttributesData(modelElement);
 
+				const figure = createMediaFigureElement( writer, registry, data );
 
-				const figure = createMediaFigureElement( viewWriter, registry, data );
-
-				return toEmbedWidget( figure, viewWriter );
+				return toEmbedWidget( figure, writer );
 			}
 		} );
 
@@ -71,10 +70,10 @@ export default class EmbedWidgetEditing extends Plugin {
 					translated: true
 				}
 			},
-			model: ( viewMedia, modelWriter ) => {
+			model: ( viewMedia, { writer } ) => {
 				var data = this._getValuesData(viewMedia);
 
-				return modelWriter.createElement( 'embedWidget', data );
+				return writer.createElement( 'embedWidget', data );
 			}
 		} );
 
