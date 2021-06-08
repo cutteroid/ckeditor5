@@ -73,8 +73,7 @@ describe( 'MediaEmbedCommand', () => {
 		} );
 
 		it( 'should be true when the selection directly in a block', () => {
-			model.schema.register( 'block', { inheritAllFrom: '$block' } );
-			model.schema.extend( '$text', { allowIn: 'block' } );
+			model.schema.register( 'block', { inheritAllFrom: '$block', allowChildren: '$text' } );
 
 			setData( model, '<block>foo[]</block>' );
 			expect( command.isEnabled ).to.be.true;
@@ -86,6 +85,20 @@ describe( 'MediaEmbedCommand', () => {
 			model.schema.extend( '$text', { allowIn: 'limit' } );
 
 			setData( model, '<block><limit>foo[]</limit></block>' );
+			expect( command.isEnabled ).to.be.false;
+		} );
+
+		it( 'should be true if a non-object element is selected', () => {
+			model.schema.register( 'element', { allowIn: '$root', isSelectable: true } );
+
+			setData( model, '[<element></element>]' );
+			expect( command.isEnabled ).to.be.true;
+		} );
+
+		it( 'should be false if a non-media object is selected', () => {
+			model.schema.register( 'image', { isObject: true, isBlock: true, allowWhere: '$block' } );
+
+			setData( model, '[<image src="http://ckeditor.com"></image>]' );
 			expect( command.isEnabled ).to.be.false;
 		} );
 	} );

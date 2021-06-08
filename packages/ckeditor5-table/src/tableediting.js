@@ -7,9 +7,9 @@
  * @module table/tableediting
  */
 
-import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+import { Plugin } from 'ckeditor5/src/core';
 
-import upcastTable, { skipEmptyTableRow } from './converters/upcasttable';
+import upcastTable, { ensureParagraphInTableCell, skipEmptyTableRow, upcastTableFigure } from './converters/upcasttable';
 import {
 	convertParagraphInTableCell,
 	downcastInsertCell,
@@ -76,20 +76,14 @@ export default class TableEditing extends Plugin {
 
 		schema.register( 'tableCell', {
 			allowIn: 'tableRow',
+			allowChildren: '$block',
 			allowAttributes: [ 'colspan', 'rowspan' ],
 			isLimit: true,
 			isSelectable: true
 		} );
 
-		// Allow all $block content inside a table cell.
-		schema.extend( '$block', { allowIn: 'tableCell' } );
-
-		// Disallow a table in a table.
-		schema.addChildCheck( ( context, childDefinition ) => {
-			if ( childDefinition.name == 'table' && Array.from( context.getNames() ).includes( 'table' ) ) {
-				return false;
-			}
-		} );
+		// Figure conversion.
+		conversion.for( 'upcast' ).add( upcastTableFigure() );
 
 		// Table conversion.
 		conversion.for( 'upcast' ).add( upcastTable() );
@@ -107,11 +101,13 @@ export default class TableEditing extends Plugin {
 		// Table cell conversion.
 		conversion.for( 'upcast' ).elementToElement( { model: 'tableCell', view: 'td' } );
 		conversion.for( 'upcast' ).elementToElement( { model: 'tableCell', view: 'th' } );
+		conversion.for( 'upcast' ).add( ensureParagraphInTableCell( 'td' ) );
+		conversion.for( 'upcast' ).add( ensureParagraphInTableCell( 'th' ) );
 
 		conversion.for( 'editingDowncast' ).add( downcastInsertCell() );
 
 		// Duplicates code - needed to properly refresh paragraph inside a table cell.
-		editor.conversion.for( 'editingDowncast' ).elementToElement( {
+		conversion.for( 'editingDowncast' ).elementToElement( {
 			model: 'paragraph',
 			view: convertParagraphInTableCell,
 			converterPriority: 'high'

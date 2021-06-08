@@ -160,8 +160,7 @@ describe( 'DataController', () => {
 		it( 'should accept parsing context', () => {
 			modelDocument.createRoot( 'inlineRoot', 'inlineRoot' );
 
-			schema.register( 'inlineRoot' );
-			schema.extend( '$text', { allowIn: 'inlineRoot' } );
+			schema.register( 'inlineRoot', { allowChildren: '$text' } );
 
 			const viewFragment = new ViewDocumentFragment( viewDocument, [ parseView( 'foo' ) ] );
 
@@ -376,40 +375,33 @@ describe( 'DataController', () => {
 	} );
 
 	describe( 'get()', () => {
-		it( 'should get paragraph with text', () => {
+		beforeEach( () => {
 			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
-			setData( model, '<paragraph>foo</paragraph>' );
-
 			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
+		} );
+
+		it( 'should get paragraph with text', () => {
+			setData( model, '<paragraph>foo</paragraph>' );
 
 			expect( data.get() ).to.equal( '<p>foo</p>' );
 			expect( data.get( { trim: 'empty' } ) ).to.equal( '<p>foo</p>' );
 		} );
 
 		it( 'should trim empty paragraph by default', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			setData( model, '<paragraph></paragraph>' );
-
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 
 			expect( data.get() ).to.equal( '' );
 			expect( data.get( { trim: 'empty' } ) ).to.equal( '' );
 		} );
 
 		it( 'should get empty paragraph (with trim=none)', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			setData( model, '<paragraph></paragraph>' );
-
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 
 			expect( data.get( { trim: 'none' } ) ).to.equal( '<p>&nbsp;</p>' );
 		} );
 
 		it( 'should get two paragraphs', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			setData( model, '<paragraph>foo</paragraph><paragraph>bar</paragraph>' );
-
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 
 			expect( data.get() ).to.equal( '<p>foo</p><p>bar</p>' );
 			expect( data.get( { trim: 'empty' } ) ).to.equal( '<p>foo</p><p>bar</p>' );
@@ -424,20 +416,15 @@ describe( 'DataController', () => {
 		} );
 
 		it( 'should get paragraphs without bold', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			setData( model, '<paragraph>foo<$text bold="true">bar</$text></paragraph>' );
-
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 
 			expect( data.get() ).to.equal( '<p>foobar</p>' );
 			expect( data.get( { trim: 'empty' } ) ).to.equal( '<p>foobar</p>' );
 		} );
 
 		it( 'should get paragraphs with bold', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			setData( model, '<paragraph>foo<$text bold="true">bar</$text></paragraph>' );
 
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 			downcastHelpers.attributeToElement( { model: 'bold', view: 'strong' } );
 
 			expect( data.get() ).to.equal( '<p>foo<strong>bar</strong></p>' );
@@ -445,13 +432,11 @@ describe( 'DataController', () => {
 		} );
 
 		it( 'should get root name as a parameter', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
 			schema.extend( '$text', { allowIn: '$root' } );
 
 			setData( model, '<paragraph>foo</paragraph>', { rootName: 'main' } );
 			setData( model, 'Bar', { rootName: 'title' } );
 
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 			downcastHelpers.attributeToElement( { model: 'bold', view: 'strong' } );
 
 			expect( data.get() ).to.equal( '<p>foo</p>' );
@@ -466,8 +451,6 @@ describe( 'DataController', () => {
 		} );
 
 		it( 'should allow to provide additional options for retrieving data - insert conversion', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
-
 			data.downcastDispatcher.on( 'insert:paragraph', ( evt, data, conversionApi ) => {
 				conversionApi.consumable.consume( data.item, 'insert' );
 
@@ -487,7 +470,7 @@ describe( 'DataController', () => {
 		} );
 
 		it( 'should allow to provide additional options for retrieving data - attribute conversion', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block', allowAttributes: [ 'foo' ] } );
+			schema.extend( 'paragraph', { allowAttributes: [ 'foo' ] } );
 			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
 
 			data.downcastDispatcher.on( 'attribute:foo', ( evt, data, conversionApi ) => {
@@ -509,9 +492,6 @@ describe( 'DataController', () => {
 		} );
 
 		it( 'should allow to provide additional options for retrieving data - addMarker conversion', () => {
-			schema.register( 'paragraph', { inheritAllFrom: '$block' } );
-			downcastHelpers.elementToElement( { model: 'paragraph', view: 'p' } );
-
 			data.downcastDispatcher.on( 'addMarker', ( evt, data, conversionApi ) => {
 				if ( conversionApi.options.skipMarker ) {
 					return;
@@ -539,6 +519,15 @@ describe( 'DataController', () => {
 
 			expect( data.get( { skipMarker: false } ) ).to.equal( '<p>f<marker>o</marker>o</p>' );
 			expect( data.get( { skipMarker: true } ) ).to.equal( '<p>foo</p>' );
+		} );
+
+		it( 'should pass default options value to converters', () => {
+			data.downcastDispatcher.on( 'insert:paragraph', ( evt, data, conversionApi ) => {
+				expect( conversionApi.options ).to.deep.equal( {} );
+			} );
+
+			setData( model, '<paragraph>foo</paragraph>' );
+			data.get();
 		} );
 	} );
 
@@ -573,14 +562,19 @@ describe( 'DataController', () => {
 			}, { priority: 'high' } );
 
 			const modelDocumentFragment = parseModel( '<paragraph>foo</paragraph><paragraph>bar</paragraph>', schema );
-
 			const options = { foo: 'bar' };
-
-			data.stringify( modelDocumentFragment );
-			expect( spy.lastCall.args[ 0 ] ).to.not.equal( options );
 
 			data.stringify( modelDocumentFragment, options );
 			expect( spy.lastCall.args[ 0 ] ).to.equal( options );
+		} );
+
+		it( 'should pass default options value to converters', () => {
+			data.downcastDispatcher.on( 'insert:paragraph', ( evt, data, conversionApi ) => {
+				expect( conversionApi.options ).to.deep.equal( {} );
+			} );
+
+			const modelDocumentFragment = parseModel( '<paragraph>foo</paragraph><paragraph>bar</paragraph>', schema );
+			data.stringify( modelDocumentFragment );
 		} );
 	} );
 
@@ -659,18 +653,24 @@ describe( 'DataController', () => {
 			expect( stringifyView( viewDocumentFragment ) ).to.equal( 'f<span class="a">oo</span>' );
 		} );
 
-		it( 'should convert a document fragment', () => {
+		it( 'should convert a document fragment and its markers', () => {
+			downcastHelpers.markerToData( { model: 'foo' } );
 			const modelDocumentFragment = parseModel( '<paragraph>foo</paragraph><paragraph>bar</paragraph>', schema );
+
+			const range = model.createRange(
+				model.createPositionAt( modelDocumentFragment.getChild( 0 ), 1 ),
+				model.createPositionAt( modelDocumentFragment.getChild( 1 ), 2 )
+			);
+			modelDocumentFragment.markers.set( 'foo:bar', range );
+
 			const viewDocumentFragment = data.toView( modelDocumentFragment );
 
 			expect( viewDocumentFragment ).to.be.instanceOf( ViewDocumentFragment );
 			expect( viewDocumentFragment ).to.have.property( 'childCount', 2 );
 
-			const viewElement = viewDocumentFragment.getChild( 0 );
-
-			expect( viewElement.name ).to.equal( 'p' );
-			expect( viewElement.childCount ).to.equal( 1 );
-			expect( viewElement.getChild( 0 ).data ).to.equal( 'foo' );
+			expect( stringifyView( viewDocumentFragment ) ).to.equal(
+				'<p>f<foo-start name="bar"></foo-start>oo</p><p>ba<foo-end name="bar"></foo-end>r</p>'
+			);
 		} );
 
 		it( 'should keep view-model mapping', () => {
@@ -723,6 +723,17 @@ describe( 'DataController', () => {
 			sinon.assert.calledTwice( spy );
 			expect( spy.firstCall.args[ 0 ] ).to.equal( options );
 			expect( spy.lastCall.args[ 0 ] ).to.equal( options );
+		} );
+
+		it( 'should pass default options value to converters', () => {
+			data.downcastDispatcher.on( 'insert:paragraph', ( evt, data, conversionApi ) => {
+				expect( conversionApi.options ).to.deep.equal( {} );
+			} );
+
+			const root = model.document.getRoot();
+			setData( model, '<paragraph>foo</paragraph>' );
+
+			data.toView( root );
 		} );
 	} );
 

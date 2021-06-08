@@ -653,7 +653,7 @@ function upcastDataToMarker( config ) {
 		// This converter handles both element conversion and attribute conversion, which means that if a single
 		// `config.converterPriority` is used, it will lead to problems. For example, if `'high'` priority is used,
 		// then attribute conversion will be performed before a lot of element upcast converters.
-		// On the other hand we want to support `config.converterPriority` and overwriting conveters.
+		// On the other hand we want to support `config.converterPriority` and overwriting converters.
 		//
 		// To have it work, we need to do some extra processing for priority for attribute converter.
 		// Priority `'low'` value should be the base value and then we will change it depending on `config.converterPriority` value.
@@ -682,12 +682,23 @@ function upcastAttributeToMarker( config ) {
 	return ( evt, data, conversionApi ) => {
 		const attrName = `data-${ config.view }`;
 
+		// Check if any attribute for the given view item can be consumed before changing the conversion data
+		// and consuming view items with these attributes.
+		if (
+			!conversionApi.consumable.test( data.viewItem, { attributes: attrName + '-end-after' } ) &&
+			!conversionApi.consumable.test( data.viewItem, { attributes: attrName + '-start-after' } ) &&
+			!conversionApi.consumable.test( data.viewItem, { attributes: attrName + '-end-before' } ) &&
+			!conversionApi.consumable.test( data.viewItem, { attributes: attrName + '-start-before' } )
+		) {
+			return;
+		}
+
 		// This converter wants to add a model element, marking a marker, before/after an element (or maybe even group of elements).
 		// To do that, we can use `data.modelRange` which is set on an element (or a group of elements) that has been upcasted.
 		// But, if the processed view element has not been upcasted yet (it does not have been converted), we need to
 		// fire conversion for its children first, then we will have `data.modelRange` available.
 		if ( !data.modelRange ) {
-			data = Object.assign( data, conversionApi.convertChildren( data.viewItem, data.modelCursor ) );
+			Object.assign( data, conversionApi.convertChildren( data.viewItem, data.modelCursor ) );
 		}
 
 		if ( conversionApi.consumable.consume( data.viewItem, { attributes: attrName + '-end-after' } ) ) {
@@ -868,15 +879,6 @@ function prepareToAttributeConverter( config, shallow ) {
 			return;
 		}
 
-		const modelKey = config.model.key;
-		const modelValue = typeof config.model.value == 'function' ?
-			config.model.value( data.viewItem, conversionApi ) : config.model.value;
-
-		// Do not convert if attribute building function returned falsy value.
-		if ( modelValue === null ) {
-			return;
-		}
-
 		if ( onlyViewNameIsDefined( config.view, data.viewItem ) ) {
 			match.match.name = true;
 		} else {
@@ -889,16 +891,27 @@ function prepareToAttributeConverter( config, shallow ) {
 			return;
 		}
 
-		// Since we are converting to attribute we need an range on which we will set the attribute.
-		// If the range is not created yet, we will create it.
+		const modelKey = config.model.key;
+		const modelValue = typeof config.model.value == 'function' ?
+			config.model.value( data.viewItem, conversionApi ) : config.model.value;
+
+		// Do not convert if attribute building function returned falsy value.
+		if ( modelValue === null ) {
+			return;
+		}
+
+		// Since we are converting to attribute we need a range on which we will set the attribute.
+		// If the range is not created yet, let's create it by converting children of the current node first.
 		if ( !data.modelRange ) {
 			// Convert children and set conversion result as a current data.
-			data = Object.assign( data, conversionApi.convertChildren( data.viewItem, data.modelCursor ) );
+			Object.assign( data, conversionApi.convertChildren( data.viewItem, data.modelCursor ) );
 		}
 
 		// Set attribute on current `output`. `Schema` is checked inside this helper function.
 		const attributeWasSet = setAttributeOn( data.modelRange, { key: modelKey, value: modelValue }, shallow, conversionApi );
 
+		// It may happen that a converter will try to set an attribute that is not allowed in the given context.
+		// In such a situation we cannot consume the attribute. See: https://github.com/ckeditor/ckeditor5/pull/9249#issuecomment-815658459.
 		if ( attributeWasSet ) {
 			conversionApi.consumable.consume( data.viewItem, match.match );
 		}
@@ -923,6 +936,8 @@ function onlyViewNameIsDefined( viewConfig, viewItem ) {
 // Helper function for to-model-attribute converter. Sets model attribute on given range. Checks {@link module:engine/model/schema~Schema}
 // to ensure proper model structure.
 //
+// If any node on the given range has already defined an attribute with the same name, its value will not be updated.
+//
 // @param {module:engine/model/range~Range} modelRange Model range on which attribute should be set.
 // @param {Object} modelAttribute Model attribute to set.
 // @param {module:engine/conversion/upcastdispatcher~UpcastConversionApi} conversionApi Conversion API.
@@ -934,11 +949,21 @@ function setAttributeOn( modelRange, modelAttribute, shallow, conversionApi ) {
 
 	// Set attribute on each item in range according to Schema.
 	for ( const node of Array.from( modelRange.getItems( { shallow } ) ) ) {
-		if ( conversionApi.schema.checkAttribute( node, modelAttribute.key ) ) {
-			conversionApi.writer.setAttribute( modelAttribute.key, modelAttribute.value, node );
-
-			result = true;
+		// Skip if not allowed.
+		if ( !conversionApi.schema.checkAttribute( node, modelAttribute.key ) ) {
+			continue;
 		}
+
+		// Mark the node as consumed even if the attribute will not be updated because it's in a valid context (schema)
+		// and would be converted if the attribute wouldn't be present. See #8921.
+		result = true;
+
+		// Do not override the attribute if it's already present.
+		if ( node.hasAttribute( modelAttribute.key ) ) {
+			continue;
+		}
+
+		conversionApi.writer.setAttribute( modelAttribute.key, modelAttribute.value, node );
 	}
 
 	return result;

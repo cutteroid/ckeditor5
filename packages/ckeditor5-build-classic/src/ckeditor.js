@@ -29,6 +29,7 @@ import PasteFromOffice from '@ckeditor/ckeditor5-paste-from-office/src/pastefrom
 import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
+import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
 
 import Autosave from '@ckeditor/ckeditor5-autosave/src/autosave';
 import HeadingButtonsUI from '@ckeditor/ckeditor5-heading/src/headingbuttonsui';
@@ -54,8 +55,11 @@ ClassicEditor.builtinPlugins = [
 	Bold,
 	Italic,
 	BlockQuote,
+
 	// CKFinder,
+	// CloudServices,
 	// EasyImage,
+
 	Heading,
 	Image,
 	ImageCaption,
@@ -99,10 +103,10 @@ ClassicEditor.defaultConfig = {
 			'bulletedList',
 			'numberedList',
 			'|',
-			'indent',
 			'outdent',
+			'indent',
 			'|',
-			'imageUpload',
+			'uploadImage',
 			'blockQuote',
 			'insertTable',
 			'mediaEmbed',

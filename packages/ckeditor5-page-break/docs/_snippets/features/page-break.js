@@ -32,7 +32,7 @@ ClassicEditor
 				'pageBreak',
 				'blockQuote',
 				'link',
-				'imageUpload',
+				'uploadImage',
 				'mediaEmbed',
 				'insertTable',
 				'|',
@@ -82,6 +82,12 @@ ClassicEditor
 					'</script>' +
 				'</body>' +
 				'</html>';
+		} );
+
+		window.attachTourBalloon( {
+			target: window.findToolbarItem( editor.ui.view.toolbar, item => item.label && item.label === 'Page break' ),
+			text: 'Click to insert a page break.',
+			editor
 		} );
 	} )
 	.catch( err => {

@@ -39,9 +39,9 @@ async function startStandardEditingMode() {
 	await reloadEditor( {
 		removePlugins: [ 'RestrictedEditingMode' ],
 		toolbar: [
-			'heading', '|', 'bold', 'italic', 'link', '|',
+			'restrictedEditingException', '|', 'heading', '|', 'bold', 'italic', 'link', '|',
 			'bulletedList', 'numberedList', 'blockQuote', 'insertTable', '|',
-			'restrictedEditingException', '|', 'undo', 'redo'
+			'undo', 'redo'
 		],
 		image: {
 			toolbar: [ 'imageStyle:full', 'imageStyle:side', '|', 'imageTextAlternative' ]
@@ -59,7 +59,7 @@ async function startStandardEditingMode() {
 async function startRestrictedEditingMode() {
 	await reloadEditor( {
 		removePlugins: [ 'StandardEditingMode' ],
-		toolbar: [ 'bold', 'italic', 'link', '|', 'restrictedEditing', '|', 'undo', 'redo' ]
+		toolbar: [ 'restrictedEditing', '|', 'bold', 'italic', 'link', '|', 'undo', 'redo' ]
 	} );
 }
 
@@ -69,4 +69,16 @@ async function reloadEditor( config ) {
 	}
 
 	window.editor = await ClassicEditor.create( document.querySelector( '#restricted-editing-editor' ), config );
+
+	window.attachTourBalloon( {
+		target: window.findToolbarItem(
+			window.editor.ui.view.toolbar,
+			item => item.label && [ 'Enable editing', 'Disable editing' ].includes( item.label )
+		),
+		text: 'Click to add or remove editable regions.',
+		editor: window.editor,
+		tippyOptions: {
+			placement: 'bottom-start'
+		}
+	} );
 }

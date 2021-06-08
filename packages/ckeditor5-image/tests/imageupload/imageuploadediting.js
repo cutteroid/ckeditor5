@@ -8,10 +8,10 @@
 import VirtualTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/virtualtesteditor';
 
 import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
-import Clipboard from '@ckeditor/ckeditor5-clipboard/src/clipboard';
+import ClipboardPipeline from '@ckeditor/ckeditor5-clipboard/src/clipboardpipeline';
 import ImageEditing from '../../src/image/imageediting';
 import ImageUploadEditing from '../../src/imageupload/imageuploadediting';
-import ImageUploadCommand from '../../src/imageupload/imageuploadcommand';
+import UploadImageCommand from '../../src/imageupload/uploadimagecommand';
 import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph';
 import UndoEditing from '@ckeditor/ckeditor5-undo/src/undoediting';
 import DataTransfer from '@ckeditor/ckeditor5-clipboard/src/datatransfer';
@@ -25,6 +25,7 @@ import { setData as setModelData, getData as getModelData } from '@ckeditor/cked
 import { getData as getViewData, stringify as stringifyView } from '@ckeditor/ckeditor5-engine/src/dev-utils/view';
 
 import Notification from '@ckeditor/ckeditor5-ui/src/notification/notification';
+import { modelToViewAttributeConverter } from '../../src/image/converters';
 
 describe( 'ImageUploadEditing', () => {
 	// eslint-disable-next-line max-len
@@ -58,7 +59,7 @@ describe( 'ImageUploadEditing', () => {
 
 		return VirtualTestEditor
 			.create( {
-				plugins: [ ImageEditing, ImageUploadEditing, Paragraph, UndoEditing, UploadAdapterPluginMock, Clipboard ]
+				plugins: [ ImageEditing, ImageUploadEditing, Paragraph, UndoEditing, UploadAdapterPluginMock, ClipboardPipeline ]
 			} )
 			.then( newEditor => {
 				editor = newEditor;
@@ -83,8 +84,12 @@ describe( 'ImageUploadEditing', () => {
 		expect( model.schema.checkAttribute( [ '$root', 'image' ], 'uploadId' ) ).to.be.true;
 	} );
 
-	it( 'should register imageUpload command', () => {
-		expect( editor.commands.get( 'imageUpload' ) ).to.be.instanceOf( ImageUploadCommand );
+	it( 'should register uploadImage command', () => {
+		expect( editor.commands.get( 'uploadImage' ) ).to.be.instanceOf( UploadImageCommand );
+	} );
+
+	it( 'should register imageUpload command as an alias for uploadImage command', () => {
+		expect( editor.commands.get( 'imageUpload' ) ).to.equal( editor.commands.get( 'uploadImage' ) );
 	} );
 
 	it( 'should load Clipboard plugin', () => {
@@ -93,11 +98,26 @@ describe( 'ImageUploadEditing', () => {
 				plugins: [ ImageEditing, ImageUploadEditing, Paragraph, UndoEditing, UploadAdapterPluginMock ]
 			} )
 			.then( editor => {
-				expect( editor.plugins.get( Clipboard ) ).to.be.instanceOf( Clipboard );
+				expect( editor.plugins.get( ClipboardPipeline ) ).to.be.instanceOf( ClipboardPipeline );
 			} );
 	} );
 
 	it( 'should insert image when is pasted', () => {
+		const fileMock = createNativeFileMock();
+		const dataTransfer = new DataTransfer( { files: [ fileMock ], types: [ 'Files' ] } );
+		setModelData( model, '<paragraph>foo[]</paragraph>' );
+
+		const eventInfo = new EventInfo( viewDocument, 'clipboardInput' );
+		viewDocument.fire( eventInfo, { dataTransfer, targetRanges: null } );
+
+		const id = fileRepository.getLoader( fileMock ).id;
+		expect( getModelData( model ) ).to.equal(
+			`<paragraph>foo</paragraph>[<image uploadId="${ id }" uploadStatus="reading"></image>]`
+		);
+		expect( eventInfo.stop.called ).to.be.true;
+	} );
+
+	it( 'should insert image when is dropped', () => {
 		const fileMock = createNativeFileMock();
 		const dataTransfer = new DataTransfer( { files: [ fileMock ], types: [ 'Files' ] } );
 		setModelData( model, '<paragraph>[]foo</paragraph>' );
@@ -152,13 +172,13 @@ describe( 'ImageUploadEditing', () => {
 		);
 	} );
 
-	it( 'should insert image when is pasted on allowed position when ImageUploadCommand is disabled', () => {
+	it( 'should insert image when is pasted on allowed position when UploadImageCommand is disabled', () => {
 		setModelData( model, '<paragraph>foo</paragraph>[<image></image>]' );
 
 		const fileMock = createNativeFileMock();
 		const dataTransfer = new DataTransfer( { files: [ fileMock ], types: [ 'Files' ] } );
 
-		const command = editor.commands.get( 'imageUpload' );
+		const command = editor.commands.get( 'uploadImage' );
 
 		expect( command.isEnabled ).to.be.true;
 
@@ -177,7 +197,7 @@ describe( 'ImageUploadEditing', () => {
 		// Clipboard plugin is required for this test.
 		return VirtualTestEditor
 			.create( {
-				plugins: [ ImageEditing, ImageUploadEditing, Paragraph, UploadAdapterPluginMock, Clipboard ]
+				plugins: [ ImageEditing, ImageUploadEditing, Paragraph, UploadAdapterPluginMock, ClipboardPipeline ]
 			} )
 			.then( editor => {
 				const fileMock = createNativeFileMock();
@@ -279,9 +299,9 @@ describe( 'ImageUploadEditing', () => {
 	it( 'should not insert image nor crash when pasted image could not be inserted', () => {
 		model.schema.register( 'other', {
 			allowIn: '$root',
+			allowChildren: '$text',
 			isLimit: true
 		} );
-		model.schema.extend( '$text', { allowIn: 'other' } );
 
 		editor.conversion.elementToElement( { model: 'other', view: 'p' } );
 
@@ -356,15 +376,15 @@ describe( 'ImageUploadEditing', () => {
 	it( 'should not use read data once it is present', done => {
 		const file = createNativeFileMock();
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		model.document.once( 'change', () => {
 			tryExpect( done, () => {
 				expect( getViewData( view ) ).to.equal(
 					'[<figure class="ck-widget image" contenteditable="false">' +
-						// Rendering the image data is left to a upload progress converter.
-						'<img></img>' +
-						'</figure>]' +
+					// Rendering the image data is left to a upload progress converter.
+					'<img></img>' +
+					'</figure>]' +
 					'<p>foo bar</p>'
 				);
 
@@ -377,25 +397,46 @@ describe( 'ImageUploadEditing', () => {
 		loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
 	} );
 
-	it( 'should replace read data with server response once it is present', done => {
+	it( 'should replace read data with server response once it is present', async () => {
 		const file = createNativeFileMock();
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
-		model.document.once( 'change', () => {
-			model.document.once( 'change', () => {
-				tryExpect( done, () => {
-					expect( getViewData( view ) ).to.equal(
-						'[<figure class="ck-widget image" contenteditable="false"><img src="image.png"></img></figure>]<p>foo bar</p>'
-					);
-					expect( loader.status ).to.equal( 'idle' );
-				} );
-			}, { priority: 'lowest' } );
+		await new Promise( res => {
+			model.document.once( 'change', res );
+			loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+		} );
 
+		await new Promise( res => {
+			model.document.once( 'change', res, { priority: 'lowest' } );
 			loader.file.then( () => adapterMocks[ 0 ].mockSuccess( { default: 'image.png' } ) );
 		} );
 
-		loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+		expect( getViewData( view ) ).to.equal(
+			'[<figure class="ck-widget image" contenteditable="false"><img src="image.png"></img></figure>]<p>foo bar</p>'
+		);
+		expect( loader.status ).to.equal( 'idle' );
+	} );
+
+	it( 'should support adapter response with the normalized `urls` property', async () => {
+		const file = createNativeFileMock();
+		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
+		editor.execute( 'uploadImage', { file } );
+
+		await new Promise( res => {
+			model.document.once( 'change', res );
+			loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+		} );
+
+		await new Promise( res => {
+			model.document.once( 'change', res, { priority: 'lowest' } );
+			loader.file.then( () => adapterMocks[ 0 ].mockSuccess( { urls: { default: 'image.png' } } ) );
+		} );
+
+		expect( getViewData( view ) ).to.equal(
+			'[<figure class="ck-widget image" contenteditable="false"><img src="image.png"></img></figure>]<p>foo bar</p>'
+		);
+		expect( loader.status ).to.equal( 'idle' );
 	} );
 
 	it( 'should fire notification event in case of error', done => {
@@ -411,7 +452,7 @@ describe( 'ImageUploadEditing', () => {
 		}, { priority: 'high' } );
 
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		loader.file.then( () => nativeReaderMock.mockError( 'Reading error.' ) );
 	} );
@@ -427,7 +468,7 @@ describe( 'ImageUploadEditing', () => {
 		}, { priority: 'high' } );
 
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		loader.file.then( () => {
 			nativeReaderMock.abort();
@@ -454,7 +495,7 @@ describe( 'ImageUploadEditing', () => {
 		} );
 
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		sinon.assert.calledOnce( loadSpy );
 
@@ -497,7 +538,7 @@ describe( 'ImageUploadEditing', () => {
 			evt.stop();
 		}, { priority: 'high' } );
 
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		model.document.once( 'change', () => {
 			model.document.once( 'change', () => {
@@ -514,7 +555,7 @@ describe( 'ImageUploadEditing', () => {
 	it( 'should abort upload if image is removed', () => {
 		const file = createNativeFileMock();
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		const abortSpy = sinon.spy( loader, 'abort' );
 
@@ -536,7 +577,7 @@ describe( 'ImageUploadEditing', () => {
 	it( 'should not abort and not restart upload when image is moved', () => {
 		const file = createNativeFileMock();
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		const abortSpy = sinon.spy( loader, 'abort' );
 		const loadSpy = sinon.spy( loader, 'read' );
@@ -561,7 +602,7 @@ describe( 'ImageUploadEditing', () => {
 			evt.stop();
 		}, { priority: 'high' } );
 
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		const stub = sinon.stub();
 		model.document.on( 'change', stub );
@@ -586,10 +627,10 @@ describe( 'ImageUploadEditing', () => {
 		} );
 	} );
 
-	it( 'should create responsive image if server return multiple images', done => {
+	it( 'should create responsive image if the server returns multiple images', done => {
 		const file = createNativeFileMock();
 		setModelData( model, '<paragraph>{}foo bar</paragraph>' );
-		editor.execute( 'imageUpload', { file } );
+		editor.execute( 'uploadImage', { file } );
 
 		model.document.once( 'change', () => {
 			model.document.once( 'change', () => {
@@ -609,6 +650,162 @@ describe( 'ImageUploadEditing', () => {
 		loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
 	} );
 
+	describe( 'uploadComplete event', () => {
+		it( 'should be fired when the upload adapter resolves with the image data', async () => {
+			const file = createNativeFileMock();
+			setModelData( model, '<paragraph>[]foo bar</paragraph>' );
+
+			const imageUploadEditing = editor.plugins.get( 'ImageUploadEditing' );
+			const uploadCompleteSpy = sinon.spy();
+
+			imageUploadEditing.on( 'uploadComplete', uploadCompleteSpy );
+
+			editor.execute( 'uploadImage', { file } );
+
+			await new Promise( res => {
+				model.document.once( 'change', res );
+				loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+			} );
+
+			sinon.assert.notCalled( uploadCompleteSpy );
+
+			await new Promise( res => {
+				model.document.once( 'change', res, { priority: 'lowest' } );
+				loader.file.then( () => adapterMocks[ 0 ].mockSuccess( { default: 'image.png' } ) );
+			} );
+
+			sinon.assert.calledOnce( uploadCompleteSpy );
+
+			const eventArgs = uploadCompleteSpy.firstCall.args[ 1 ];
+
+			expect( eventArgs ).to.be.an( 'object' );
+			expect( eventArgs.imageElement.is( 'model:element', 'image' ) ).to.be.true;
+			expect( eventArgs.data ).to.deep.equal( { default: 'image.png' } );
+		} );
+
+		it( 'should allow modifying the image element once the original image is uploaded', async () => {
+			const file = createNativeFileMock();
+			setModelData( model, '<paragraph>[]foo bar</paragraph>' );
+
+			editor.model.schema.extend( 'image', { allowAttributes: 'data-original' } );
+
+			editor.conversion.for( 'downcast' )
+				.add( modelToViewAttributeConverter( 'data-original' ) );
+
+			editor.conversion.for( 'upcast' )
+				.attributeToAttribute( {
+					view: {
+						name: 'img',
+						key: 'data-original'
+					},
+					model: 'data-original'
+				} );
+
+			const imageUploadEditing = editor.plugins.get( 'ImageUploadEditing' );
+			let batch;
+
+			imageUploadEditing.on( 'uploadComplete', ( evt, { imageElement, data } ) => {
+				editor.model.change( writer => {
+					writer.setAttribute( 'data-original', data.originalUrl, imageElement );
+					batch = writer.batch;
+				} );
+			} );
+
+			editor.execute( 'uploadImage', { file } );
+
+			await new Promise( res => {
+				model.document.once( 'change', res );
+				loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+			} );
+
+			await new Promise( res => {
+				model.document.once( 'change', res, { priority: 'lowest' } );
+				loader.file.then( () => adapterMocks[ 0 ].mockSuccess( { originalUrl: 'original.jpg', default: 'image.jpg' } ) );
+			} );
+
+			// Make sure the custom attribute was set in the same transparent batch as the default handling (setting src and status).
+			expect( batch.type ).to.equal( 'transparent' );
+			expect( batch.operations.length ).to.equal( 3 );
+
+			expect( batch.operations[ 0 ].type ).to.equal( 'changeAttribute' );
+			expect( batch.operations[ 0 ].key ).to.equal( 'uploadStatus' );
+			expect( batch.operations[ 0 ].newValue ).to.equal( 'complete' );
+
+			expect( batch.operations[ 1 ].type ).to.equal( 'addAttribute' );
+			expect( batch.operations[ 1 ].key ).to.equal( 'data-original' );
+			expect( batch.operations[ 1 ].newValue ).to.equal( 'original.jpg' );
+
+			expect( batch.operations[ 2 ].type ).to.equal( 'addAttribute' );
+			expect( batch.operations[ 2 ].key ).to.equal( 'src' );
+			expect( batch.operations[ 2 ].newValue ).to.equal( 'image.jpg' );
+
+			expect( getModelData( model ) ).to.equal(
+				'[<image data-original="original.jpg" src="image.jpg"></image>]<paragraph>foo bar</paragraph>'
+			);
+
+			expect( getViewData( view ) ).to.equal(
+				'[<figure class="ck-widget image" contenteditable="false">' +
+					'<img data-original="original.jpg" src="image.jpg"></img>' +
+				'</figure>]' +
+				'<p>foo bar</p>'
+			);
+		} );
+
+		it( 'should allow stopping the original listener that sets image attributes based on the data', async () => {
+			const file = createNativeFileMock();
+			setModelData( model, '<paragraph>[]foo bar</paragraph>' );
+
+			const imageUploadEditing = editor.plugins.get( 'ImageUploadEditing' );
+			let batch;
+
+			imageUploadEditing.on( 'uploadComplete', ( evt, { imageElement } ) => {
+				evt.stop();
+
+				model.change( writer => {
+					writer.setAttribute( 'src', 'foo.jpg', imageElement );
+					batch = writer.batch;
+				} );
+			} );
+
+			editor.execute( 'uploadImage', { file } );
+
+			await new Promise( res => {
+				model.document.once( 'change', res );
+				loader.file.then( () => nativeReaderMock.mockSuccess( base64Sample ) );
+			} );
+
+			await new Promise( res => {
+				model.document.once( 'change', res, { priority: 'lowest' } );
+				loader.file.then( () => adapterMocks[ 0 ].mockSuccess(
+					{ default: 'image.png', 500: 'image-500.png', 800: 'image-800.png' }
+				) );
+			} );
+
+			// Make sure the custom attribute was set in the same transparent batch as the default handling (setting src and status).
+			expect( batch.type ).to.equal( 'transparent' );
+			expect( batch.operations.length ).to.equal( 2 );
+
+			expect( batch.operations[ 0 ].type ).to.equal( 'changeAttribute' );
+			expect( batch.operations[ 0 ].key ).to.equal( 'uploadStatus' );
+			expect( batch.operations[ 0 ].newValue ).to.equal( 'complete' );
+
+			expect( batch.operations[ 1 ].type ).to.equal( 'addAttribute' );
+			expect( batch.operations[ 1 ].key ).to.equal( 'src' );
+			expect( batch.operations[ 1 ].newValue ).to.equal( 'foo.jpg' );
+
+			expect( getModelData( model ) ).to.equal(
+				'[<image src="foo.jpg"></image>]<paragraph>foo bar</paragraph>'
+			);
+
+			expect( getViewData( view ) ).to.equal(
+				'[<figure class="ck-widget image" contenteditable="false">' +
+					'<img src="foo.jpg"></img>' +
+				'</figure>]' +
+				'<p>foo bar</p>'
+			);
+		} );
+	} );
+
 	it( 'should prevent from browser redirecting when an image is dropped on another image', () => {
 		const spy = sinon.spy();
 
@@ -616,7 +813,7 @@ describe( 'ImageUploadEditing', () => {
 			preventDefault: spy
 		} );
 
-		expect( spy.calledOnce ).to.equal( true );
+		expect( spy.called ).to.equal( true );
 	} );
 
 	it( 'should upload image with base64 src', done => {
@@ -696,7 +893,7 @@ describe( 'ImageUploadEditing', () => {
 		} );
 
 		let content = null;
-		editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
+		editor.plugins.get( 'ClipboardPipeline' ).on( 'inputTransformation', ( evt, data ) => {
 			content = data.content;
 		} );
 
@@ -752,7 +949,7 @@ describe( 'ImageUploadEditing', () => {
 		} );
 
 		let content = null;
-		editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
+		editor.plugins.get( 'ClipboardPipeline' ).on( 'inputTransformation', ( evt, data ) => {
 			content = data.content;
 		} );
 
@@ -788,7 +985,7 @@ describe( 'ImageUploadEditing', () => {
 		const targetViewRange = editor.editing.mapper.toViewRange( targetRange );
 
 		let content = null;
-		editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
+		editor.plugins.get( 'ClipboardPipeline' ).on( 'inputTransformation', ( evt, data ) => {
 			content = data.content;
 		} );
 
@@ -826,7 +1023,7 @@ describe( 'ImageUploadEditing', () => {
 		const targetViewRange = editor.editing.mapper.toViewRange( targetRange );
 
 		let content = null;
-		editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
+		editor.plugins.get( 'ClipboardPipeline' ).on( 'inputTransformation', ( evt, data ) => {
 			content = data.content;
 		} );
 
@@ -978,7 +1175,7 @@ describe( 'ImageUploadEditing', () => {
 			sinon.stub( HTMLCanvasElement.prototype, 'toBlob' ).callsFake( fn => fn( null ) );
 
 			let content = null;
-			editor.plugins.get( 'Clipboard' ).on( 'inputTransformation', ( evt, data ) => {
+			editor.plugins.get( 'ClipboardPipeline' ).on( 'inputTransformation', ( evt, data ) => {
 				content = data.content;
 			} );
 

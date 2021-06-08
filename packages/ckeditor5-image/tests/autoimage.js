@@ -111,7 +111,10 @@ describe( 'AutoImage - integration', () => {
 				'http://example.com/image.JPG',
 				'http://example.com%20Fimage.png',
 				'http://example.com/image.png?foo=bar',
-				'http://example.com/image.png#foo'
+				'http://example.com/image.png#',
+				'http://example.com/image.png#foo',
+				'http://example.com/image.png?foo=bar#',
+				'http://example.com/image.png?foo=bar#baz'
 			];
 
 			for ( const supportedURL of supportedURLs ) {
@@ -133,7 +136,6 @@ describe( 'AutoImage - integration', () => {
 				'http://www.example.com',
 				'https://example.com',
 				'http://www.example.com/image.svg',
-				'http://www.example.com/image.webp',
 				'http://www.example.com/image.mp3',
 				'http://www.example.com/image.exe',
 				'http://www.example.com/image.txt',
@@ -154,6 +156,20 @@ describe( 'AutoImage - integration', () => {
 					);
 				} );
 			}
+
+			// s/ckeditor5/3
+			it( 'should handle invalid URL with repeated characters', () => {
+				const invalidURL = 'a.' + 'a'.repeat( 100000 );
+
+				setData( editor.model, '<paragraph>[]</paragraph>' );
+				pasteHtml( editor, invalidURL );
+
+				clock.tick( 100 );
+
+				expect( getData( editor.model ) ).to.equal(
+					`<paragraph>${ invalidURL }[]</paragraph>`
+				);
+			} );
 		} );
 
 		it( 'works for URL that was pasted as a link', () => {

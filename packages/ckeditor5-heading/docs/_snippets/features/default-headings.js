@@ -24,6 +24,17 @@ ClassicEditor
 	} )
 	.then( editor => {
 		window.editor = editor;
+
+		window.attachTourBalloon( {
+			target: window.findToolbarItem(
+				editor.ui.view.toolbar, item => item.buttonView && item.buttonView.label && item.buttonView.label.startsWith( 'Heading' )
+			),
+			text: 'Click to change heading level.',
+			editor,
+			tippyOptions: {
+				placement: 'bottom-start'
+			}
+		} );
 	} )
 	.catch( err => {
 		console.error( err.stack );

@@ -7,7 +7,7 @@
  * @module media-embed/mediaembedediting
  */
 
-import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+import { Plugin } from 'ckeditor5/src/core';
 
 import { modelToViewUrlAttributeConverter } from './converters';
 import MediaEmbedCommand from './mediaembedcommand';
@@ -36,6 +36,7 @@ export default class MediaEmbedEditing extends Plugin {
 		super( editor );
 
 		editor.config.define( 'mediaEmbed', {
+			elementName: 'oembed',
 			providers: [
 				{
 					name: 'dailymotion',
@@ -132,7 +133,12 @@ export default class MediaEmbedEditing extends Plugin {
 				},
 				{
 					name: 'googleMaps',
-					url: /^google\.com\/maps/
+					url: [
+						/^google\.com\/maps/,
+						/^goo\.gl\/maps/,
+						/^maps\.google\.com/,
+						/^maps\.app\.goo\.gl/
+					]
 				},
 				{
 					name: 'flickr',
@@ -162,6 +168,8 @@ export default class MediaEmbedEditing extends Plugin {
 		const t = editor.t;
 		const conversion = editor.conversion;
 		const renderMediaPreview = editor.config.get( 'mediaEmbed.previewsInData' );
+		const elementName = editor.config.get( 'mediaEmbed.elementName' );
+
 		const registry = this.registry;
 
 		editor.commands.add( 'mediaEmbed', new MediaEmbedCommand( editor ) );
@@ -181,6 +189,7 @@ export default class MediaEmbedEditing extends Plugin {
 				const url = modelElement.getAttribute( 'url' );
 
 				return createMediaFigureElement( writer, registry, url, {
+					elementName,
 					renderMediaPreview: url && renderMediaPreview
 				} );
 			}
@@ -189,6 +198,7 @@ export default class MediaEmbedEditing extends Plugin {
 		// Model -> Data (url -> data-oembed-url)
 		conversion.for( 'dataDowncast' ).add(
 			modelToViewUrlAttributeConverter( registry, {
+				elementName,
 				renderMediaPreview
 			} ) );
 
@@ -198,6 +208,7 @@ export default class MediaEmbedEditing extends Plugin {
 			view: ( modelElement, { writer } ) => {
 				const url = modelElement.getAttribute( 'url' );
 				const figure = createMediaFigureElement( writer, registry, url, {
+					elementName,
 					renderForEditingView: true
 				} );
 
@@ -208,6 +219,7 @@ export default class MediaEmbedEditing extends Plugin {
 		// Model -> View (url -> data-oembed-url)
 		conversion.for( 'editingDowncast' ).add(
 			modelToViewUrlAttributeConverter( registry, {
+				elementName,
 				renderForEditingView: true
 			} ) );
 
@@ -215,12 +227,9 @@ export default class MediaEmbedEditing extends Plugin {
 		conversion.for( 'upcast' )
 			// Upcast semantic media.
 			.elementToElement( {
-				view: {
-					name: 'oembed',
-					attributes: {
-						url: true
-					}
-				},
+				view: element => [ 'oembed', elementName ].includes( element.name ) && element.getAttribute( 'url' ) ?
+					{ name: true } :
+					null,
 				model: ( viewMedia, { writer } ) => {
 					const url = viewMedia.getAttribute( 'url' );
 

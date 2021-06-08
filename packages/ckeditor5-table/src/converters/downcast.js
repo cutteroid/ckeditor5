@@ -8,8 +8,8 @@
  */
 
 import TableWalker from './../tablewalker';
-import { setHighlightHandling, toWidget, toWidgetEditable } from '@ckeditor/ckeditor5-widget/src/utils';
-import toArray from '@ckeditor/ckeditor5-utils/src/toarray';
+import { setHighlightHandling, toWidget, toWidgetEditable } from 'ckeditor5/src/widget';
+import { toArray } from 'ckeditor5/src/utils';
 
 /**
  * Model table element to view table element conversion helper.
@@ -74,7 +74,8 @@ export function downcastInsertTable( options = {} ) {
 		for ( const tableRow of table.getChildren() ) {
 			const rowIndex = tableRow.index;
 
-			if ( !viewRows.has( rowIndex ) ) {
+			// Make sure that this is a table row and not some other element (i.e., caption).
+			if ( tableRow.is( 'element', 'tableRow' ) && !viewRows.has( rowIndex ) ) {
 				viewRows.set( rowIndex, createTr( tableElement, tableRow, rowIndex, tableAttributes, conversionApi ) );
 			}
 		}
@@ -379,7 +380,7 @@ function createViewTableCellElement( tableSlot, tableAttributes, insertPosition,
 	conversionApi.mapper.bindElements( tableCell, cellElement );
 
 	// Additional requirement for data pipeline to have backward compatible data tables.
-	if ( !asWidget && !hasAnyAttribute( firstChild ) && isSingleParagraph ) {
+	if ( !asWidget && isSingleParagraph && !hasAnyAttribute( firstChild ) ) {
 		const innerParagraph = tableCell.getChild( 0 );
 
 		conversionApi.consumable.consume( innerParagraph, 'insert' );

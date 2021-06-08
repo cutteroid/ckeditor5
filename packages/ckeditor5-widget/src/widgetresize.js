@@ -86,17 +86,17 @@ export default class WidgetResize extends Plugin {
 			}
 		};
 
-		const redrawFocusedResizerThrottled = throttle( redrawFocusedResizer, 200 );
+		this._redrawFocusedResizerThrottled = throttle( redrawFocusedResizer, 200 );
 
 		// Redraws occurring upon a change of visible resizer must not be throttled, as it is crucial for the initial
 		// render. Without it the resizer frame would be misaligned with resizing host for a fraction of second.
 		this.on( 'change:visibleResizer', redrawFocusedResizer );
 
 		// Redrawing on any change of the UI of the editor (including content changes).
-		this.editor.ui.on( 'update', redrawFocusedResizerThrottled );
+		this.editor.ui.on( 'update', this._redrawFocusedResizerThrottled );
 
 		// Resizers need to be redrawn upon window resize, because new window might shrink resize host.
-		this._observer.listenTo( global.window, 'resize', redrawFocusedResizerThrottled );
+		this._observer.listenTo( global.window, 'resize', this._redrawFocusedResizerThrottled );
 
 		const viewSelection = this.editor.editing.view.document.selection;
 
@@ -116,6 +116,8 @@ export default class WidgetResize extends Plugin {
 		for ( const resizer of this._resizers.values() ) {
 			resizer.destroy();
 		}
+
+		this._redrawFocusedResizerThrottled.cancel();
 	}
 
 	/**
@@ -258,7 +260,7 @@ mix( WidgetResize, ObservableMixin );
  *
  * It receives a `Number` (`newValue`) as a parameter.
  *
- * For example, {@link module:image/imageresize~ImageResize} uses it to execute the image resize command
+ * For example, {@link module:image/imageresize~ImageResize} uses it to execute the resize image command
  * which puts the new value into the model.
  *
  * ```js
@@ -268,7 +270,7 @@ mix( WidgetResize, ObservableMixin );
  *	viewElement: widget,
  *
  *	onCommit( newValue ) {
- *		editor.execute( 'imageResize', { width: newValue } );
+ *		editor.execute( 'resizeImage', { width: newValue } );
  *	}
  * };
  * ```
