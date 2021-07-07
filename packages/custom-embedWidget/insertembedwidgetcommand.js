@@ -1,7 +1,7 @@
 import Command from '@ckeditor/ckeditor5-core/src/command';
 import Template from '@ckeditor/ckeditor5-ui/src/template';
 
-import { findOptimalInsertionPosition } from '@ckeditor/ckeditor5-widget/src/utils';
+import { findOptimalInsertionRange } from '@ckeditor/ckeditor5-widget/src/utils';
 import { insertEmbedWidget } from './utils';
 
 export default class InsertEmbedWidgetCommand extends Command {
@@ -10,7 +10,7 @@ export default class InsertEmbedWidgetCommand extends Command {
         const editor = this.editor;
         const model = editor.model;
         const selection = model.document.selection;
-        var insertPosition = findOptimalInsertionPosition( selection, model );
+        var insertPosition = findOptimalInsertionRange( selection, model );
 
         if (data.prepend_content) {
             const viewFragment = editor.data.processor.toView( data.prepend_content );
