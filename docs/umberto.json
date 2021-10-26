@@ -1,8 +1,14 @@
 {
 	"name": "CKEditor 5",
 	"slug": "ckeditor5",
+	"hooks": {
+		"beforeHexo": [
+			"../scripts/docs/build-content-styles.js"
+		]
+	},
 	"hexo-config": "docs/hexo-custom-config.json",
 	"extraStyles": "assets/styles.css",
+	"extraScripts": "assets/buildwarningbanner.js",
 	"packagesDir": ["packages", "external", "external/*/packages" ],
 	"path": "docs",
 	"observablesdocs": "module:utils/observablemixin~ObservableMixin",
@@ -36,7 +42,9 @@
 		"features/collaboration/real-time-collaboration/real-time-collaborative-comments.html": "features/collaboration/real-time-collaboration/real-time-collaboration-integration.html",
 		"features/collaboration/real-time-collaboration/real-time-collaborative-editing.html": "features/collaboration/real-time-collaboration/real-time-collaboration-integration.html",
 		"features/collaboration/track-changes.html": "features/collaboration/track-changes/track-changes.html",
+		"features/collaboration/comments/comments-display-mode.html": "features/collaboration/annotations/annotations-display-mode.html",
 		"features/easy-image.html": "features/image-upload/easy-image.html",
+		"features/images/overview.html": "features/images/images-overview.html",
 		"features/image-upload.html": "features/image-upload/image-upload.html",
 		"features/image.html": "features/images/overview.html",
 		"features/mathtype.html": "features/math-equations.html",
@@ -92,7 +100,7 @@
 	},
 	"groups": [
 		{
-			"name": "Builds",
+			"name": "Installation",
 			"id": "builds",
 			"slug": "builds",
 			"categories": [
@@ -102,16 +110,22 @@
 					"slug": "guides",
 					"categories": [
 						{
+							"name": "Predefined builds",
+							"id": "builds-predefined",
+							"slug": "predefined-builds",
+							"order": 100
+						},
+						{
 							"name": "Integration",
 							"id": "builds-integration",
 							"slug": "integration",
-							"order": 100,
+							"order": 200,
 							"categories": [
 								{
 									"name": "Frameworks",
 									"id": "builds-integration-frameworks",
 									"slug": "frameworks",
-									"order": 100
+									"order": 200
 								}
 							]
 						},
@@ -119,19 +133,19 @@
 							"name": "Development",
 							"id": "builds-development",
 							"slug": "development",
-							"order": 200
+							"order": 300
 						},
 						{
-							"name": "Migration",
+							"name": "Migration / update",
 							"id": "builds-migration",
 							"slug": "migration",
-							"order": 300
+							"order": 400
 						},
 						{
 							"name": "Support",
 							"id": "builds-support",
 							"slug": "support",
-							"order": 400
+							"order": 500
 						}
 					]
 				}
@@ -197,23 +211,6 @@
 			]
 		},
 		{
-			"name": "Examples",
-			"id": "examples",
-			"slug": "examples",
-			"categories": [
-				{
-					"name": "Builds",
-					"id": "examples-builds",
-					"slug": "builds"
-				},
-				{
-					"name": "Framework",
-					"id": "examples-framework",
-					"slug": "framework"
-				}
-			]
-		},
-		{
 			"name": "Features",
 			"id": "features",
 			"slug": "features",
@@ -222,30 +219,35 @@
 					"name": "Collaboration",
 					"id": "features-collaboration",
 					"slug": "collaboration",
+					"badges": [ "premium" ],
 					"categories": [
 						{
 							"name": "Comments",
 							"id": "features-comments",
 							"slug": "comments",
-							"order": 100
+							"order": 100,
+							"badges": [ "premium" ]
 						},
 						{
 							"name": "Track changes",
 							"id": "features-track-changes",
 							"slug": "track-changes",
-							"order": 200
+							"order": 200,
+							"badges": [ "premium" ]
 						},
 						{
 							"name": "Real-time collaboration",
 							"id": "features-real-time-collaboration",
 							"slug": "real-time-collaboration",
-							"order": 300
+							"order": 300,
+							"badges": [ "premium" ]
 						},
 						{
 							"name": "Annotations",
 							"id": "features-annotations",
 							"slug": "annotations",
-							"order": 400
+							"order": 400,
+							"badges": [ "premium" ]
 						}
 					]
 				},
@@ -268,6 +270,12 @@
 					"slug": "lists"
 				},
 				{
+					"name": "Pagination",
+					"id": "features-pagination",
+					"slug": "pagination",
+					"badges": [ "premium" ]
+				},
+				{
 					"name": "Pasting",
 					"id": "features-pasting",
 					"slug": "pasting"
@@ -275,12 +283,30 @@
 				{
 					"name": "Revision history",
 					"id": "features-revision-history",
-					"slug": "revision-history"
+					"slug": "revision-history",
+					"badges": [ "premium" ]
 				},
 				{
 					"name": "Toolbar",
 					"id": "features-toolbar",
 					"slug": "toolbar"
+				}
+			]
+		},
+		{
+			"name": "Examples",
+			"id": "examples",
+			"slug": "examples",
+			"categories": [
+				{
+					"name": "Builds",
+					"id": "examples-builds",
+					"slug": "builds"
+				},
+				{
+					"name": "Framework",
+					"id": "examples-framework",
+					"slug": "framework"
 				}
 			]
 		},

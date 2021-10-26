@@ -7,7 +7,6 @@ import Matcher from '../view/matcher';
 import ConversionHelpers from './conversionhelpers';
 
 import { cloneDeep } from 'lodash-es';
-import { logWarning } from '@ckeditor/ckeditor5-utils/src/ckeditorerror';
 
 import priorities from '@ckeditor/ckeditor5-utils/src/priorities';
 import { isParagraphable, wrapInParagraph } from '../model/utils/autoparagraphing';
@@ -294,12 +293,16 @@ export default class UpcastHelpers extends ConversionHelpers {
 	/**
 	 * View element to model marker conversion helper.
 	 *
-	 * **Note**: This method was deprecated. Please use {@link #dataToMarker} instead.
-	 *
 	 * This conversion results in creating a model marker. For example, if the marker was stored in a view as an element:
 	 * `<p>Fo<span data-marker="comment" data-comment-id="7"></span>o</p><p>B<span data-marker="comment" data-comment-id="7"></span>ar</p>`,
 	 * after the conversion is done, the marker will be available in
 	 * {@link module:engine/model/model~Model#markers model document markers}.
+	 *
+	 * **Note**: When this helper is used in the data upcast in combination with
+	 * {@link module:engine/conversion/downcasthelpers~DowncastHelpers#markerToData `#markerToData()`} in the data downcast,
+	 * then invalid HTML code (e.g. a span between table cells) may be produced by the latter converter.
+	 *
+	 * In most of the cases, the {@link #dataToMarker} should be used instead.
 	 *
 	 *		editor.conversion.for( 'upcast' ).elementToMarker( {
 	 *			view: 'marker-search',
@@ -330,7 +333,6 @@ export default class UpcastHelpers extends ConversionHelpers {
 	 * See {@link module:engine/conversion/conversion~Conversion#for `conversion.for()`} to learn how to add a converter
 	 * to the conversion process.
 	 *
-	 * @deprecated
 	 * @method #elementToMarker
 	 * @param {Object} config Conversion configuration.
 	 * @param {module:engine/view/matcher~MatcherPattern} config.view Pattern matching all view elements which should be converted.
@@ -340,15 +342,6 @@ export default class UpcastHelpers extends ConversionHelpers {
 	 * @returns {module:engine/conversion/upcasthelpers~UpcastHelpers}
 	 */
 	elementToMarker( config ) {
-		/**
-		 * The {@link module:engine/conversion/upcasthelpers~UpcastHelpers#elementToMarker `UpcastHelpers#elementToMarker()`}
-		 * method was deprecated and will be removed in the near future.
-		 * Please use {@link module:engine/conversion/upcasthelpers~UpcastHelpers#dataToMarker `UpcastHelpers#dataToMarker()`} instead.
-		 *
-		 * @error upcast-helpers-element-to-marker-deprecated
-		 */
-		logWarning( 'upcast-helpers-element-to-marker-deprecated' );
-
 		return this.add( upcastElementToMarker( config ) );
 	}
 
@@ -651,11 +644,11 @@ function upcastDataToMarker( config ) {
 		// Below is a hack that is needed to properly handle `converterPriority` for both elements and attributes.
 		// Attribute conversion needs to be performed *after* element conversion.
 		// This converter handles both element conversion and attribute conversion, which means that if a single
-		// `config.converterPriority` is used, it will lead to problems. For example, if `'high'` priority is used,
-		// then attribute conversion will be performed before a lot of element upcast converters.
-		// On the other hand we want to support `config.converterPriority` and overwriting converters.
+		// `config.converterPriority` is used, it will lead to problems. For example, if the `'high'` priority is used,
+		// the attribute conversion will be performed before a lot of element upcast converters.
+		// On the other hand, we want to support `config.converterPriority` and converter overwriting.
 		//
-		// To have it work, we need to do some extra processing for priority for attribute converter.
+		// To make it work, we need to do some extra processing for priority for attribute converter.
 		// Priority `'low'` value should be the base value and then we will change it depending on `config.converterPriority` value.
 		//
 		// This hack probably would not be needed if attributes are upcasted separately.

@@ -3,10 +3,11 @@
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-/* globals Range, DocumentFragment, HTMLElement, document, Text */
+/* globals Range, DocumentFragment, HTMLElement, Comment, document, Text */
 
 import ViewText from '../../../src/view/text';
 import ViewElement from '../../../src/view/element';
+import ViewUIElement from '../../../src/view/uielement';
 import ViewPosition from '../../../src/view/position';
 import ViewContainerElement from '../../../src/view/containerelement';
 import ViewAttributeElement from '../../../src/view/attributeelement';
@@ -184,6 +185,93 @@ describe( 'DomConverter', () => {
 			const domSvg = converter.viewToDom( viewSvg, document );
 
 			expect( domSvg.createSVGRect ).to.be.a( 'function' );
+		} );
+
+		it( 'should create a DOM comment node from a view `$comment` UIElement', () => {
+			const viewComment = new ViewUIElement( viewDocument, '$comment' );
+
+			viewComment._setCustomProperty( '$rawContent', 'foo' );
+
+			const domComment = converter.viewToDom( viewComment, document );
+
+			expect( domComment ).to.be.an.instanceof( Comment );
+			expect( domComment.nodeName ).to.equal( '#comment' );
+			expect( domComment.data ).to.equal( 'foo' );
+
+			expect( converter.mapDomToView( domComment ) ).to.not.equal( viewComment );
+		} );
+
+		it( 'should create a DOM comment node from a view `$comment` UIElement and bind them', () => {
+			const viewComment = new ViewUIElement( viewDocument, '$comment' );
+
+			viewComment._setCustomProperty( '$rawContent', 'foo' );
+
+			const domComment = converter.viewToDom( viewComment, document, { bind: true } );
+
+			expect( domComment ).to.be.an.instanceof( Comment );
+			expect( domComment.nodeName ).to.equal( '#comment' );
+			expect( domComment.data ).to.equal( 'foo' );
+
+			expect( converter.mapDomToView( domComment ) ).to.equal( viewComment );
+		} );
+
+		describe( 'options.renderingMode = editing', () => {
+			it( 'should filter DOM event handlers', () => {
+				const viewImg = new ViewElement( viewDocument, 'img' );
+				const viewText = new ViewText( viewDocument, 'foo' );
+				const viewP = new ViewElement( viewDocument, 'p', { onclick: 'bar' } );
+
+				viewP._appendChild( viewImg );
+				viewP._appendChild( viewText );
+
+				const domImg = document.createElement( 'img' );
+
+				converter = new DomConverter( viewDocument, {
+					renderingMode: 'editing'
+				} );
+
+				converter.experimentalRenderingMode = true;
+				converter.bindElements( domImg, viewImg );
+
+				const domP = converter.viewToDom( viewP, document );
+
+				expect( domP ).to.be.an.instanceof( HTMLElement );
+				expect( domP.tagName ).to.equal( 'P' );
+				expect( domP.attributes.length ).to.equal( 0 );
+
+				expect( domP.childNodes.length ).to.equal( 2 );
+				expect( domP.childNodes[ 0 ].tagName ).to.equal( 'IMG' );
+				expect( domP.childNodes[ 1 ].data ).to.equal( 'foo' );
+
+				expect( converter.mapDomToView( domP ) ).not.to.equal( viewP );
+				expect( converter.mapDomToView( domP.childNodes[ 0 ] ) ).to.equal( viewImg );
+			} );
+
+			it( 'should replace script with span and add special data attribute', () => {
+				const viewScript = new ViewElement( viewDocument, 'script' );
+				const viewText = new ViewText( viewDocument, 'foo' );
+				const viewP = new ViewElement( viewDocument, 'p', { class: 'foo' } );
+
+				viewP._appendChild( viewScript );
+				viewP._appendChild( viewText );
+
+				converter = new DomConverter( viewDocument, {
+					renderingMode: 'editing'
+				} );
+				converter.experimentalRenderingMode = true;
+
+				const domP = converter.viewToDom( viewP, document );
+
+				expect( domP ).to.be.an.instanceof( HTMLElement );
+				expect( domP.tagName ).to.equal( 'P' );
+				expect( domP.getAttribute( 'class' ) ).to.equal( 'foo' );
+				expect( domP.attributes.length ).to.equal( 1 );
+
+				expect( domP.childNodes.length ).to.equal( 2 );
+				expect( domP.childNodes[ 0 ].tagName ).to.equal( 'SPAN' );
+				expect( domP.childNodes[ 0 ].getAttribute( 'data-ck-hidden' ) ).to.equal( 'script' );
+				expect( domP.childNodes[ 1 ].data ).to.equal( 'foo' );
+			} );
 		} );
 
 		describe( 'it should convert spaces to &nbsp;', () => {
