@@ -122,16 +122,16 @@ ClassicEditor.defaultConfig = {
 			'imageStyle:block',
 			'imageStyle:side',
 			'|',
-			'toggleImageCaption',
-			'imageTextAlternative'
+			'toggleImageCaption'
 		]
 	},
 	table: {
 		contentToolbar: [
-			'toggleTableCaption',
 			'tableColumn',
 			'tableRow',
-			'mergeTableCells'
+			'mergeTableCells',
+			'|'
+			'toggleTableCaption'
 		]
 	},
 	// This value must be kept in sync with the language defined in webpack.config.js.
