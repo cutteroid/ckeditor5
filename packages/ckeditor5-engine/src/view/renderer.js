@@ -120,7 +120,7 @@ export default class Renderer {
 		// Rendering the selection and inline filler manipulation should be postponed in (non-Android) Blink until the user finishes
 		// creating the selection in DOM to avoid accidental selection collapsing
 		// (https://github.com/ckeditor/ckeditor5/issues/10562, https://github.com/ckeditor/ckeditor5/issues/10723).
-		// When the user stops, selecting, all pending changes should be rendered ASAP, though.
+		// When the user stops selecting, all pending changes should be rendered ASAP, though.
 		if ( env.isBlink && !env.isAndroid ) {
 			this.on( 'change:isSelecting', () => {
 				if ( !this.isSelecting ) {
@@ -555,25 +555,14 @@ export default class Renderer {
 
 		// Add or overwrite attributes.
 		for ( const key of viewAttrKeys ) {
-			const value = viewElement.getAttribute( key );
-
-			if ( !this.domConverter.shouldRenderAttribute( key, value ) ) {
-				domElement.removeAttribute( key );
-			} else {
-				domElement.setAttribute( key, value );
-			}
+			this.domConverter.setDomElementAttribute( domElement, key, viewElement.getAttribute( key ), viewElement );
 		}
 
 		// Remove from DOM attributes which do not exists in the view.
 		for ( const key of domAttrKeys ) {
-			// Do not remove attributes on `script` elements with special data attributes `data-ck-hidden`.
-			if ( viewElement.name === 'script' && key === 'data-ck-hidden' ) {
-				continue;
-			}
-
 			// All other attributes not present in the DOM should be removed.
 			if ( !viewElement.hasAttribute( key ) ) {
-				domElement.removeAttribute( key );
+				this.domConverter.removeDomElementAttribute( domElement, key );
 			}
 		}
 	}
@@ -742,7 +731,7 @@ export default class Renderer {
 	_updateSelection() {
 		// Block updating DOM selection in (non-Android) Blink while the user is selecting to prevent accidental selection collapsing.
 		// Note: Structural changes in DOM must trigger selection rendering, though. Nodes the selection was anchored
-		// to may disappear in DOM which would break the selection (e.g. in real-time collaboration scenarios).
+		// to, may disappear in DOM which would break the selection (e.g. in real-time collaboration scenarios).
 		// https://github.com/ckeditor/ckeditor5/issues/10562, https://github.com/ckeditor/ckeditor5/issues/10723
 		if ( env.isBlink && !env.isAndroid && this.isSelecting && !this.markedChildren.size ) {
 			return;
