@@ -130,7 +130,7 @@ ClassicEditor.defaultConfig = {
 			'tableColumn',
 			'tableRow',
 			'mergeTableCells',
-			'|'
+			'|',
 			'toggleTableCaption'
 		]
 	},
