@@ -107,6 +107,10 @@ export function getImgViewElementMatcher( editor, matchImageType ) {
  * @returns {'imageBlock'|'imageInline'}
  */
 export function determineImageTypeForInsertionAtSelection( schema, selection ) {
+
+	// always use imageBlock
+	return 'imageBlock';
+
 	const firstBlock = first( selection.getSelectedBlocks() );
 
 	// Insert a block image if the selection is not in/on block elements or it's on a block widget.
