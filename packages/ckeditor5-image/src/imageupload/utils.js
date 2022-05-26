@@ -62,6 +62,40 @@ export function fetchLocalImage( image ) {
 }
 
 /**
+ * Creates a promise that fetches the external image.
+ *
+ * @param {module:engine/view/element~Element} image Image whose source to fetch.
+ * @returns {Promise.<File>} A promise which resolves when an image source is fetched and converted to a `File` instance.
+ * It resolves with a `File` object. If there were any errors during file processing, the promise will be rejected.
+ */
+export function fetchExternalImage( image, $fetchURL ) {
+	return new Promise( ( resolve, reject ) => {
+
+		const imageSrc = image.getAttribute( 'src' );
+		var fileName = imageSrc.split('/').pop().split('#')[0].split('?')[0];
+		if (!fileName) fileName = 'image.jpg';
+
+		const params = new URLSearchParams({
+			src: imageSrc,
+			name: fileName
+		});
+
+		fetch( $fetchURL + '?'+ params)
+			.then( response => response.blob() )
+			.then( blob => {
+				const mimeType = getImageMimeType( blob, imageSrc );
+				const file = new File( [ blob ], fileName, { type: mimeType } );
+				resolve( file );
+			} )
+			.catch( err => {
+				return err && err.name === 'TypeError' ?
+					convertLocalImageOnCanvas( imageSrc ).then( resolve ).catch( reject ) :
+					reject( err );
+			} );
+	} );
+}
+
+/**
  * Checks whether a given node is an image element with a local source (Base64 or blob).
  *
  * @param {module:image/imageutils~ImageUtils} imageUtils
@@ -76,6 +110,32 @@ export function isLocalImage( imageUtils, node ) {
 	return node.getAttribute( 'src' ).match( /^data:image\/\w+;base64,/g ) ||
 		node.getAttribute( 'src' ).match( /^blob:/g );
 }
+
+/**
+ * Checks whether a given node is an image element with a external source.
+ *
+ * @param {module:image/imageutils~ImageUtils} imageUtils
+ * @param {module:engine/view/node~Node} node The node to check.
+ * @returns {Boolean}
+*/
+export function isExternalImage( imageUtils, node ) {
+
+	if ( !(imageUtils.isInlineImageView( node ) || imageUtils.isBlockImageView( node ) ) ) {
+		return false;
+	}
+
+	var
+		res = false,
+		src = node.getAttribute( 'src' )
+	;
+
+	if ( src && !src.startsWith('/attachments') ) {
+		res = true;
+	}
+
+	return res;
+}
+
 
 // Extracts an image type based on its blob representation or its source.
 //

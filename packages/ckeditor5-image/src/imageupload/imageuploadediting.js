@@ -18,7 +18,7 @@ import { env } from 'ckeditor5/src/utils';
 
 import ImageUtils from '../imageutils';
 import UploadImageCommand from './uploadimagecommand';
-import { fetchLocalImage, isLocalImage } from '../../src/imageupload/utils';
+import { fetchLocalImage, fetchExternalImage, isLocalImage, isExternalImage } from '../../src/imageupload/utils';
 import { createImageTypeRegExp } from './utils';
 
 /**
@@ -143,6 +143,34 @@ export default class ImageUploadEditing extends Plugin {
 			const fetchableImages = Array.from( editor.editing.view.createRangeIn( data.content ) )
 				.filter( value => isLocalImage( imageUtils, value.item ) && !value.item.getAttribute( 'uploadProcessed' ) )
 				.map( value => { return { promise: fetchLocalImage( value.item ), imageElement: value.item }; } );
+
+			if ( !fetchableImages.length ) {
+				return;
+			}
+
+			const writer = new UpcastWriter( editor.editing.view.document );
+
+			for ( const fetchableImage of fetchableImages ) {
+				// Set attribute marking that the image was processed already.
+				writer.setAttribute( 'uploadProcessed', true, fetchableImage.imageElement );
+
+				const loader = fileRepository.createLoader( fetchableImage.promise );
+
+				if ( loader ) {
+					writer.setAttribute( 'src', '', fetchableImage.imageElement );
+					writer.setAttribute( 'uploadId', loader.id, fetchableImage.imageElement );
+				}
+			}
+		} );
+
+		this.listenTo( editor.plugins.get( 'ClipboardPipeline' ), 'inputTransformation', ( evt, data ) => {
+
+			var fetchURL = editor.config._config.image.fetchURL;
+			if (!fetchURL) return;
+
+			const fetchableImages = Array.from( editor.editing.view.createRangeIn( data.content ) )
+				.filter( value => isExternalImage( imageUtils, value.item ) && !value.item.getAttribute( 'uploadProcessed' ) )
+				.map( value => { return { promise: fetchExternalImage( value.item, fetchURL ), imageElement: value.item }; } );
 
 			if ( !fetchableImages.length ) {
 				return;
