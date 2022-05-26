@@ -10,7 +10,7 @@
 import { Plugin } from 'ckeditor5/src/core';
 
 import ImageBlock from './imageblock';
-import ImageInline from './imageinline';
+// import ImageInline from './imageinline';
 
 import '../theme/image.css';
 
@@ -34,7 +34,7 @@ export default class Image extends Plugin {
 	 * @inheritDoc
 	 */
 	static get requires() {
-		return [ ImageBlock, ImageInline ];
+		return [ ImageBlock ];
 	}
 
 	/**

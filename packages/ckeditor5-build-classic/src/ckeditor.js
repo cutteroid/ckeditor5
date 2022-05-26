@@ -118,9 +118,9 @@ ClassicEditor.defaultConfig = {
 	},
 	image: {
 		toolbar: [
-			'imageStyle:inline',
+			'imageStyle:alignRight',
 			'imageStyle:block',
-			'imageStyle:side',
+			'imageStyle:alignLeft',
 			'|',
 			'toggleImageCaption'
 		]

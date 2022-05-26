@@ -226,7 +226,7 @@ function getDefaultStylesConfiguration( isBlockPluginLoaded, isInlinePluginLoade
 		};
 	} else if ( isBlockPluginLoaded ) {
 		return {
-			options: [ 'block', 'side' ]
+			options: [ 'block', 'alignLeft', 'alignRight' ]
 		};
 	} else if ( isInlinePluginLoaded ) {
 		return {
