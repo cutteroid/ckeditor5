@@ -83,14 +83,11 @@ export function fetchExternalImage( image, $fetchURL ) {
 		fetch( $fetchURL + '?'+ params)
 			.then( response => {
 				var fn =  getFilenameFromContentDispositionHeader(response.headers.get('Content-Disposition'));
-				if (fn) {
-					fileName = fn;
-				}
-				console.log(fileName);
+				if (fn) fileName = fn;
+
 				return response.blob();
 			})
 			.then( blob => {
-				console.log(fileName);
 				const mimeType = getImageMimeType( blob, imageSrc );
 				const file = new File( [ blob ], fileName, { type: mimeType } );
 				resolve( file );

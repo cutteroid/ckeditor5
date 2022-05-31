@@ -45,6 +45,7 @@ import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize'
 import EmbedWidget from '../../custom-embedWidget/embedwidget';
 import ImagePanel from '../../custom-imagePanel/imagepanel';
 import Fullscreen from '../../custom-fullscreen/fullscreen';
+import Entity from '../../custom-entity/entity';
 
 export default class ClassicEditor extends ClassicEditorBase {}
 
@@ -90,7 +91,8 @@ ClassicEditor.builtinPlugins = [
 
 	EmbedWidget,
 	ImagePanel,
-	Fullscreen
+	Fullscreen,
+	Entity
 ];
 
 // Editor configuration.
@@ -113,7 +115,9 @@ ClassicEditor.defaultConfig = {
 			'insertTable',
 			'mediaEmbed',
 			'undo',
-			'redo'
+			'redo',
+			'|',
+			'entity'
 		]
 	},
 	image: {
