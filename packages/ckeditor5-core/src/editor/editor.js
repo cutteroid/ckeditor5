@@ -246,16 +246,16 @@ export default class Editor {
 
 	set isReadOnly( value ) {
 		/**
-		 * {@link #isReadOnly Editor#isReadOnly} property is read-only since version `34.0.0` and can be set only using
+		 * The {@link #isReadOnly Editor#isReadOnly} property is read-only since version `34.0.0` and can be set only using
 		 * {@link #enableReadOnlyMode `Editor#enableReadOnlyMode( lockId )`} and
 		 * {@link #disableReadOnlyMode `Editor#disableReadOnlyMode( lockId )`}.
 		 *
-		 * Before version `34.0.0`:
+		 * Usage before version `34.0.0`:
 		 *
 		 *		editor.isReadOnly = true;
 		 * 		editor.isReadOnly = false;
 		 *
-		 * Since version `34.0.0`:
+		 * Usage since version `34.0.0`:
 		 *
 		 *		editor.enableReadOnlyMode( 'my-feature-id' );
 		 * 		editor.disableReadOnlyMode( 'my-feature-id' );
@@ -481,7 +481,7 @@ mix( Editor, ObservableMixin );
  * This error is thrown when trying to pass a `<textarea>` element to a `create()` function of an editor class.
  *
  * The only editor type which can be initialized on `<textarea>` elements is
- * the {@glink installation/advanced/alternative-setups/predefined-builds#classic-editor classic editor}.
+ * the {@glink installation/getting-started/predefined-builds#classic-editor classic editor}.
  * This editor hides the passed element and inserts its own UI next to it. Other types of editors reuse the passed element as their root
  * editable element and therefore `<textarea>` is not appropriate for them. Use a `<div>` or another text container instead:
  *
