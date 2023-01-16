@@ -927,25 +927,25 @@
   "resolved" "file:packages/ckeditor5-adapter-ckfinder"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-alignment@^35.0.1", "@ckeditor/ckeditor5-alignment@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-alignment":
   "resolved" "file:packages/ckeditor5-alignment"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-autoformat@^35.0.1", "@ckeditor/ckeditor5-autoformat@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-autoformat":
   "resolved" "file:packages/ckeditor5-autoformat"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-autosave@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-autosave":
   "resolved" "file:packages/ckeditor5-autosave"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
     "lodash-es" "^4.17.15"
 
 "@ckeditor/ckeditor5-basic-styles@^35.0.1", "@ckeditor/ckeditor5-basic-styles@>=16.0.0", "@ckeditor/ckeditor5-basic-styles@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-basic-styles":
@@ -964,124 +964,129 @@
   "resolved" "file:packages/ckeditor5-build-balloon-block"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-adapter-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-autoformat" "^34.0.0"
-    "@ckeditor/ckeditor5-basic-styles" "^34.0.0"
-    "@ckeditor/ckeditor5-block-quote" "^34.0.0"
-    "@ckeditor/ckeditor5-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-cloud-services" "^34.0.0"
-    "@ckeditor/ckeditor5-easy-image" "^34.0.0"
-    "@ckeditor/ckeditor5-editor-balloon" "^34.0.0"
-    "@ckeditor/ckeditor5-essentials" "^34.0.0"
-    "@ckeditor/ckeditor5-heading" "^34.0.0"
-    "@ckeditor/ckeditor5-image" "^34.0.0"
-    "@ckeditor/ckeditor5-indent" "^34.0.0"
-    "@ckeditor/ckeditor5-link" "^34.0.0"
-    "@ckeditor/ckeditor5-list" "^34.0.0"
-    "@ckeditor/ckeditor5-media-embed" "^34.0.0"
-    "@ckeditor/ckeditor5-paragraph" "^34.0.0"
-    "@ckeditor/ckeditor5-paste-from-office" "^34.0.0"
-    "@ckeditor/ckeditor5-table" "^34.0.0"
-    "@ckeditor/ckeditor5-typing" "^34.0.0"
-    "@ckeditor/ckeditor5-ui" "^34.0.0"
+    "@ckeditor/ckeditor5-adapter-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-autoformat" "^35.0.1"
+    "@ckeditor/ckeditor5-basic-styles" "^35.0.1"
+    "@ckeditor/ckeditor5-block-quote" "^35.0.1"
+    "@ckeditor/ckeditor5-ckbox" "^35.0.1"
+    "@ckeditor/ckeditor5-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-cloud-services" "^35.0.1"
+    "@ckeditor/ckeditor5-easy-image" "^35.0.1"
+    "@ckeditor/ckeditor5-editor-balloon" "^35.0.1"
+    "@ckeditor/ckeditor5-essentials" "^35.0.1"
+    "@ckeditor/ckeditor5-heading" "^35.0.1"
+    "@ckeditor/ckeditor5-image" "^35.0.1"
+    "@ckeditor/ckeditor5-indent" "^35.0.1"
+    "@ckeditor/ckeditor5-link" "^35.0.1"
+    "@ckeditor/ckeditor5-list" "^35.0.1"
+    "@ckeditor/ckeditor5-media-embed" "^35.0.1"
+    "@ckeditor/ckeditor5-paragraph" "^35.0.1"
+    "@ckeditor/ckeditor5-paste-from-office" "^35.0.1"
+    "@ckeditor/ckeditor5-table" "^35.0.1"
+    "@ckeditor/ckeditor5-typing" "^35.0.1"
+    "@ckeditor/ckeditor5-ui" "^35.0.1"
 
 "@ckeditor/ckeditor5-build-balloon@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-build-balloon":
   "resolved" "file:packages/ckeditor5-build-balloon"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-adapter-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-autoformat" "^34.0.0"
-    "@ckeditor/ckeditor5-basic-styles" "^34.0.0"
-    "@ckeditor/ckeditor5-block-quote" "^34.0.0"
-    "@ckeditor/ckeditor5-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-cloud-services" "^34.0.0"
-    "@ckeditor/ckeditor5-easy-image" "^34.0.0"
-    "@ckeditor/ckeditor5-editor-balloon" "^34.0.0"
-    "@ckeditor/ckeditor5-essentials" "^34.0.0"
-    "@ckeditor/ckeditor5-heading" "^34.0.0"
-    "@ckeditor/ckeditor5-image" "^34.0.0"
-    "@ckeditor/ckeditor5-indent" "^34.0.0"
-    "@ckeditor/ckeditor5-link" "^34.0.0"
-    "@ckeditor/ckeditor5-list" "^34.0.0"
-    "@ckeditor/ckeditor5-media-embed" "^34.0.0"
-    "@ckeditor/ckeditor5-paragraph" "^34.0.0"
-    "@ckeditor/ckeditor5-paste-from-office" "^34.0.0"
-    "@ckeditor/ckeditor5-table" "^34.0.0"
-    "@ckeditor/ckeditor5-typing" "^34.0.0"
+    "@ckeditor/ckeditor5-adapter-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-autoformat" "^35.0.1"
+    "@ckeditor/ckeditor5-basic-styles" "^35.0.1"
+    "@ckeditor/ckeditor5-block-quote" "^35.0.1"
+    "@ckeditor/ckeditor5-ckbox" "^35.0.1"
+    "@ckeditor/ckeditor5-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-cloud-services" "^35.0.1"
+    "@ckeditor/ckeditor5-easy-image" "^35.0.1"
+    "@ckeditor/ckeditor5-editor-balloon" "^35.0.1"
+    "@ckeditor/ckeditor5-essentials" "^35.0.1"
+    "@ckeditor/ckeditor5-heading" "^35.0.1"
+    "@ckeditor/ckeditor5-image" "^35.0.1"
+    "@ckeditor/ckeditor5-indent" "^35.0.1"
+    "@ckeditor/ckeditor5-link" "^35.0.1"
+    "@ckeditor/ckeditor5-list" "^35.0.1"
+    "@ckeditor/ckeditor5-media-embed" "^35.0.1"
+    "@ckeditor/ckeditor5-paragraph" "^35.0.1"
+    "@ckeditor/ckeditor5-paste-from-office" "^35.0.1"
+    "@ckeditor/ckeditor5-table" "^35.0.1"
+    "@ckeditor/ckeditor5-typing" "^35.0.1"
 
 "@ckeditor/ckeditor5-build-classic@^35.0.1", "@ckeditor/ckeditor5-build-classic@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-build-classic":
   "resolved" "file:packages/ckeditor5-build-classic"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-adapter-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-autoformat" "^34.0.0"
-    "@ckeditor/ckeditor5-basic-styles" "^34.0.0"
-    "@ckeditor/ckeditor5-block-quote" "^34.0.0"
-    "@ckeditor/ckeditor5-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-cloud-services" "^34.0.0"
-    "@ckeditor/ckeditor5-easy-image" "^34.0.0"
-    "@ckeditor/ckeditor5-editor-classic" "^34.0.0"
-    "@ckeditor/ckeditor5-essentials" "^34.0.0"
-    "@ckeditor/ckeditor5-heading" "^34.0.0"
-    "@ckeditor/ckeditor5-image" "^34.0.0"
-    "@ckeditor/ckeditor5-indent" "^34.0.0"
-    "@ckeditor/ckeditor5-link" "^34.0.0"
-    "@ckeditor/ckeditor5-list" "^34.0.0"
-    "@ckeditor/ckeditor5-media-embed" "^34.0.0"
-    "@ckeditor/ckeditor5-paragraph" "^34.0.0"
-    "@ckeditor/ckeditor5-paste-from-office" "^34.0.0"
-    "@ckeditor/ckeditor5-table" "^34.0.0"
-    "@ckeditor/ckeditor5-typing" "^34.0.0"
+    "@ckeditor/ckeditor5-adapter-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-autoformat" "^35.0.1"
+    "@ckeditor/ckeditor5-basic-styles" "^35.0.1"
+    "@ckeditor/ckeditor5-block-quote" "^35.0.1"
+    "@ckeditor/ckeditor5-ckbox" "^35.0.1"
+    "@ckeditor/ckeditor5-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-cloud-services" "^35.0.1"
+    "@ckeditor/ckeditor5-easy-image" "^35.0.1"
+    "@ckeditor/ckeditor5-editor-classic" "^35.0.1"
+    "@ckeditor/ckeditor5-essentials" "^35.0.1"
+    "@ckeditor/ckeditor5-heading" "^35.0.1"
+    "@ckeditor/ckeditor5-image" "^35.0.1"
+    "@ckeditor/ckeditor5-indent" "^35.0.1"
+    "@ckeditor/ckeditor5-link" "^35.0.1"
+    "@ckeditor/ckeditor5-list" "^35.0.1"
+    "@ckeditor/ckeditor5-media-embed" "^35.0.1"
+    "@ckeditor/ckeditor5-paragraph" "^35.0.1"
+    "@ckeditor/ckeditor5-paste-from-office" "^35.0.1"
+    "@ckeditor/ckeditor5-table" "^35.0.1"
+    "@ckeditor/ckeditor5-typing" "^35.0.1"
 
 "@ckeditor/ckeditor5-build-decoupled-document@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-build-decoupled-document":
   "resolved" "file:packages/ckeditor5-build-decoupled-document"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-adapter-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-alignment" "^34.0.0"
-    "@ckeditor/ckeditor5-autoformat" "^34.0.0"
-    "@ckeditor/ckeditor5-basic-styles" "^34.0.0"
-    "@ckeditor/ckeditor5-block-quote" "^34.0.0"
-    "@ckeditor/ckeditor5-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-cloud-services" "^34.0.0"
-    "@ckeditor/ckeditor5-easy-image" "^34.0.0"
-    "@ckeditor/ckeditor5-editor-decoupled" "^34.0.0"
-    "@ckeditor/ckeditor5-essentials" "^34.0.0"
-    "@ckeditor/ckeditor5-font" "^34.0.0"
-    "@ckeditor/ckeditor5-heading" "^34.0.0"
-    "@ckeditor/ckeditor5-image" "^34.0.0"
-    "@ckeditor/ckeditor5-indent" "^34.0.0"
-    "@ckeditor/ckeditor5-link" "^34.0.0"
-    "@ckeditor/ckeditor5-list" "^34.0.0"
-    "@ckeditor/ckeditor5-media-embed" "^34.0.0"
-    "@ckeditor/ckeditor5-paragraph" "^34.0.0"
-    "@ckeditor/ckeditor5-paste-from-office" "^34.0.0"
-    "@ckeditor/ckeditor5-table" "^34.0.0"
-    "@ckeditor/ckeditor5-typing" "^34.0.0"
+    "@ckeditor/ckeditor5-adapter-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-alignment" "^35.0.1"
+    "@ckeditor/ckeditor5-autoformat" "^35.0.1"
+    "@ckeditor/ckeditor5-basic-styles" "^35.0.1"
+    "@ckeditor/ckeditor5-block-quote" "^35.0.1"
+    "@ckeditor/ckeditor5-ckbox" "^35.0.1"
+    "@ckeditor/ckeditor5-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-cloud-services" "^35.0.1"
+    "@ckeditor/ckeditor5-easy-image" "^35.0.1"
+    "@ckeditor/ckeditor5-editor-decoupled" "^35.0.1"
+    "@ckeditor/ckeditor5-essentials" "^35.0.1"
+    "@ckeditor/ckeditor5-font" "^35.0.1"
+    "@ckeditor/ckeditor5-heading" "^35.0.1"
+    "@ckeditor/ckeditor5-image" "^35.0.1"
+    "@ckeditor/ckeditor5-indent" "^35.0.1"
+    "@ckeditor/ckeditor5-link" "^35.0.1"
+    "@ckeditor/ckeditor5-list" "^35.0.1"
+    "@ckeditor/ckeditor5-media-embed" "^35.0.1"
+    "@ckeditor/ckeditor5-paragraph" "^35.0.1"
+    "@ckeditor/ckeditor5-paste-from-office" "^35.0.1"
+    "@ckeditor/ckeditor5-table" "^35.0.1"
+    "@ckeditor/ckeditor5-typing" "^35.0.1"
 
 "@ckeditor/ckeditor5-build-inline@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-build-inline":
   "resolved" "file:packages/ckeditor5-build-inline"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-adapter-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-autoformat" "^34.0.0"
-    "@ckeditor/ckeditor5-basic-styles" "^34.0.0"
-    "@ckeditor/ckeditor5-block-quote" "^34.0.0"
-    "@ckeditor/ckeditor5-ckfinder" "^34.0.0"
-    "@ckeditor/ckeditor5-cloud-services" "^34.0.0"
-    "@ckeditor/ckeditor5-easy-image" "^34.0.0"
-    "@ckeditor/ckeditor5-editor-inline" "^34.0.0"
-    "@ckeditor/ckeditor5-essentials" "^34.0.0"
-    "@ckeditor/ckeditor5-heading" "^34.0.0"
-    "@ckeditor/ckeditor5-image" "^34.0.0"
-    "@ckeditor/ckeditor5-indent" "^34.0.0"
-    "@ckeditor/ckeditor5-link" "^34.0.0"
-    "@ckeditor/ckeditor5-list" "^34.0.0"
-    "@ckeditor/ckeditor5-media-embed" "^34.0.0"
-    "@ckeditor/ckeditor5-paragraph" "^34.0.0"
-    "@ckeditor/ckeditor5-paste-from-office" "^34.0.0"
-    "@ckeditor/ckeditor5-table" "^34.0.0"
-    "@ckeditor/ckeditor5-typing" "^34.0.0"
+    "@ckeditor/ckeditor5-adapter-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-autoformat" "^35.0.1"
+    "@ckeditor/ckeditor5-basic-styles" "^35.0.1"
+    "@ckeditor/ckeditor5-block-quote" "^35.0.1"
+    "@ckeditor/ckeditor5-ckbox" "^35.0.1"
+    "@ckeditor/ckeditor5-ckfinder" "^35.0.1"
+    "@ckeditor/ckeditor5-cloud-services" "^35.0.1"
+    "@ckeditor/ckeditor5-easy-image" "^35.0.1"
+    "@ckeditor/ckeditor5-editor-inline" "^35.0.1"
+    "@ckeditor/ckeditor5-essentials" "^35.0.1"
+    "@ckeditor/ckeditor5-heading" "^35.0.1"
+    "@ckeditor/ckeditor5-image" "^35.0.1"
+    "@ckeditor/ckeditor5-indent" "^35.0.1"
+    "@ckeditor/ckeditor5-link" "^35.0.1"
+    "@ckeditor/ckeditor5-list" "^35.0.1"
+    "@ckeditor/ckeditor5-media-embed" "^35.0.1"
+    "@ckeditor/ckeditor5-paragraph" "^35.0.1"
+    "@ckeditor/ckeditor5-paste-from-office" "^35.0.1"
+    "@ckeditor/ckeditor5-table" "^35.0.1"
+    "@ckeditor/ckeditor5-typing" "^35.0.1"
 
 "@ckeditor/ckeditor5-ckbox@^35.0.1", "@ckeditor/ckeditor5-ckbox@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-ckbox":
   "resolved" "file:packages/ckeditor5-ckbox"
@@ -1401,9 +1406,9 @@
   "resolved" "file:packages/ckeditor5-find-and-replace"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-ui" "^34.0.0"
-    "@ckeditor/ckeditor5-utils" "^34.0.0"
-    "ckeditor5" "^34.0.0"
+    "@ckeditor/ckeditor5-ui" "^35.0.1"
+    "@ckeditor/ckeditor5-utils" "^35.0.1"
+    "ckeditor5" "^35.0.1"
     "lodash-es" "^4.17.15"
 
 "@ckeditor/ckeditor5-font@^35.0.1", "@ckeditor/ckeditor5-font@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-font":
@@ -1434,13 +1439,13 @@
   "resolved" "file:packages/ckeditor5-html-embed"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-html-support@^35.0.1", "@ckeditor/ckeditor5-html-support@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-html-support":
   "resolved" "file:packages/ckeditor5-html-support"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
     "lodash-es" "^4.17.15"
 
 "@ckeditor/ckeditor5-image@^35.0.1", "@ckeditor/ckeditor5-image@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-image":
@@ -1466,7 +1471,7 @@
   "resolved" "file:packages/ckeditor5-language"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-link@^35.0.1", "@ckeditor/ckeditor5-link@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-link":
   "resolved" "file:packages/ckeditor5-link"
@@ -1487,7 +1492,7 @@
   "resolved" "file:packages/ckeditor5-markdown-gfm"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
     "marked" "4.0.12"
     "turndown" "^6.0.0"
     "turndown-plugin-gfm" "^1.0.2"
@@ -1503,14 +1508,14 @@
   "resolved" "file:packages/ckeditor5-mention"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
     "lodash-es" "^4.17.15"
 
 "@ckeditor/ckeditor5-minimap@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-minimap":
   "resolved" "file:packages/ckeditor5-minimap"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-operations-compressor@^34.0.0":
   "integrity" "sha512-cu5dGKgKsV0XzpctYJNQQA5vMper091GEaeUmgmhgezpzMoJk7vZJ1bezoTuyixz/SQNFlm3To8I0Ki56hDXlQ=="
@@ -1581,13 +1586,13 @@
   "resolved" "file:packages/ckeditor5-remove-format"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-restricted-editing@^35.0.1", "@ckeditor/ckeditor5-restricted-editing@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-restricted-editing":
   "resolved" "file:packages/ckeditor5-restricted-editing"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-revision-history@>=28.0.0":
   "integrity" "sha512-VtJfB6BoJheXACVLIffRALtpE3Jxugbeq1gzlcrlbXtfLPEtB6wfQ64nk+KsBOKKvbTfJ8/YhNBSbDuLvbYpCQ=="
@@ -1616,9 +1621,9 @@
   "resolved" "file:packages/ckeditor5-select-all"
   "version" "35.0.1"
   dependencies:
-    "@ckeditor/ckeditor5-core" "^34.0.0"
-    "@ckeditor/ckeditor5-ui" "^34.0.0"
-    "@ckeditor/ckeditor5-utils" "^34.0.0"
+    "@ckeditor/ckeditor5-core" "^35.0.1"
+    "@ckeditor/ckeditor5-ui" "^35.0.1"
+    "@ckeditor/ckeditor5-utils" "^35.0.1"
 
 "@ckeditor/ckeditor5-source-editing@^35.0.1", "@ckeditor/ckeditor5-source-editing@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-source-editing":
   "resolved" "file:packages/ckeditor5-source-editing"
@@ -1631,13 +1636,13 @@
   "resolved" "file:packages/ckeditor5-special-characters"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-style@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-style":
   "resolved" "file:packages/ckeditor5-style"
   "version" "35.0.1"
   dependencies:
-    "ckeditor5" "^34.0.0"
+    "ckeditor5" "^35.0.1"
 
 "@ckeditor/ckeditor5-table@^35.0.1", "@ckeditor/ckeditor5-table@file:/Users/slade/Work/ckeditor5/packages/ckeditor5-table":
   "resolved" "file:packages/ckeditor5-table"
@@ -4143,9 +4148,9 @@
     "lodash.uniq" "^4.5.0"
 
 "caniuse-lite@^1.0.0", "caniuse-lite@^1.0.30001109", "caniuse-lite@^1.0.30001317":
-  "integrity" "sha512-Y1xk6paHpUXKP/P6YjQv1xqyTbgAP05ycHBcRdQjTcyXlWol868sJJPlmk5ylOekw2BrucWes5jk+LvVd7WZ5Q=="
-  "resolved" "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001331.tgz"
-  "version" "1.0.30001331"
+  "integrity" "sha512-8sdQIdMztYmzfTMO6KfLny878Ln9c2M0fc7EH60IjlP4Dc4PiCy7K2Vl3ITmWgOyPgVQKa5x+UP/KqFsxj4mBg=="
+  "resolved" "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001445.tgz"
+  "version" "1.0.30001445"
 
 "caseless@~0.12.0":
   "integrity" "sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw="
@@ -4464,6 +4469,7 @@
     "@ckeditor/ckeditor5-watchdog" "^35.0.1"
     "@ckeditor/ckeditor5-widget" "^35.0.1"
     "@ckeditor/ckeditor5-word-count" "^35.0.1"
+    "caniuse-lite" "^1.0.30001445"
 
 "ckeditor5@^34.2.0":
   "integrity" "sha512-CxSMAzpN20HYZJQRw0AQJ/saLLXMz3qBywZOo0IKxVwwUE96PZudV08G/OjgciGrzQ/GjhpW/C+wdciMQ4cpzQ=="

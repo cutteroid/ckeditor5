@@ -33,6 +33,7 @@ import PictureEditing from '@ckeditor/ckeditor5-image/src/pictureediting';
 import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TableCaption from '@ckeditor/ckeditor5-table/src/tablecaption';
+import TableColumnResize from '@ckeditor/ckeditor5-table/src/tablecolumnresize';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
 
@@ -83,6 +84,7 @@ ClassicEditor.builtinPlugins = [
 	Table,
 	TableToolbar,
 	TableCaption,
+	TableColumnResize,
 	TextTransformation,
 
 	Autosave,
