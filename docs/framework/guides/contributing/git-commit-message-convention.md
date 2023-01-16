@@ -49,7 +49,7 @@ Each commit can contain additional notes that will be inserted into the changelo
 
 If any change contains the `MAJOR BREAKING CHANGE` note, the next release will automatically be marked as `major`.
 
-For reference on how to identify minor or major breaking change see the {@link support/versioning-policy versioning policy guide}.
+For reference on how to identify minor or major breaking change see the {@link updating/versioning-policy versioning policy guide}.
 
 Each `MAJOR BREAKING CHANGE` or `MINOR BREAKING CHANGE` note must be followed by the package name.
 
@@ -81,7 +81,7 @@ When creating PRs that address specific issues, use the following messages to in
 
 ### Methods name syntax
 
-All methods mentioned in the git commit message should use the **#** sign inbetween the class name and the method name. And example of a properly named method:
+All methods mentioned in the git commit message should use the **#** sign between the class name and the method name. And example of a properly named method:
 
 ```
 MarkerCollection#has()

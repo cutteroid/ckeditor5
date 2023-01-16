@@ -31,7 +31,7 @@ import areConnectedThroughProperties from '../../src/areconnectedthroughproperti
  * @returns {Emitter} The observer.
  */
 export function createObserver() {
-	const observer = Object.create( EmitterMixin, {
+	const observer = Object.create( EmitterMixin().prototype, {
 		observe: {
 			value: function observe( observableName, observable, filterNames ) {
 				observer.listenTo( observable, 'change', ( evt, propertyName, value, oldValue ) => {

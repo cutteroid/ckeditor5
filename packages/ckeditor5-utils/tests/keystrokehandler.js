@@ -9,13 +9,15 @@ import { keyCodes } from '../src/keyboard';
 import env from '../src/env';
 
 describe( 'KeystrokeHandler', () => {
+	const Emitter = EmitterMixin();
+
 	const initialEnvMac = env.isMac;
 	let emitter, keystrokes;
 
 	beforeEach( () => {
 		env.isMac = false;
 
-		emitter = Object.create( EmitterMixin );
+		emitter = new Emitter();
 		keystrokes = new KeystrokeHandler();
 
 		keystrokes.listenTo( emitter );

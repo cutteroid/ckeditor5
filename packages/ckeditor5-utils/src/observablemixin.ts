@@ -20,287 +20,335 @@ const boundPropertiesSymbol = Symbol( 'boundProperties' );
 const decoratedMethods = Symbol( 'decoratedMethods' );
 const decoratedOriginal = Symbol( 'decoratedOriginal' );
 
+const defaultObservableClass = ObservableMixin( EmitterMixin() );
+
 /**
  * A mixin that injects the "observable properties" and data binding functionality described in the
  * {@link ~Observable} interface.
+ *
+ * This function creates a class that inherits from the provided `base` and implements `Observable` interface.
+ *
+ * ```ts
+ * class BaseClass { ... }
+ *
+ * class MyClass extends ObservableMixin( BaseClass ) {
+ * 	// This class derives from `BaseClass` and implements the `Observable` interface.
+ * }
+ * ```
+ *
+ * Read more about the concept of observables in the:
+ * * {@glink framework/guides/architecture/core-editor-architecture#event-system-and-observables Event system and observables}
+ * section of the {@glink framework/guides/architecture/core-editor-architecture Core editor architecture} guide,
+ * * {@glink framework/guides/deep-dive/observables Observables deep-dive guide}.
+ */
+export default function ObservableMixin<Base extends abstract new( ...args: Array<any> ) => Emitter>(
+	base: Base
+): {
+	new ( ...args: ConstructorParameters<Base> ): InstanceType<Base> & Observable;
+	prototype: InstanceType<Base> & Observable;
+};
+
+/**
+ * A mixin that injects the "observable properties" and data binding functionality described in the
+ * {@link ~Observable} interface.
+ *
+ * This function creates a class that implements `Observable` interface.
+ *
+ * ```ts
+ * class MyClass extends ObservableMixin() {
+ * 	// This class implements the `Observable` interface.
+ * }
+ * ```
  *
  * Read more about the concept of observables in the:
  * * {@glink framework/guides/architecture/core-editor-architecture#event-system-and-observables Event system and observables}
  * section of the {@glink framework/guides/architecture/core-editor-architecture Core editor architecture} guide,
  * * {@glink framework/guides/deep-dive/observables Observables deep dive} guide.
- *
- * @mixin ObservableMixin
- * @mixes module:utils/emittermixin~EmitterMixin
- * @implements module:utils/observablemixin~Observable
  */
-const ObservableMixin: Observable = {
-	/**
-	 * @inheritDoc
-	 */
-	set( name: string | { [ name: string ]: unknown }, value?: unknown ): void {
-		// If the first parameter is an Object, iterate over its properties.
-		if ( isObject( name ) ) {
-			Object.keys( name ).forEach( property => {
-				this.set( property as any, name[ property ] );
-			}, this );
-
-			return;
-		}
-
-		initObservable( this );
-
-		const properties = this[ observablePropertiesSymbol ];
-
-		if ( ( name in this ) && !properties!.has( name ) ) {
-			/**
-			 * Cannot override an existing property.
-			 *
-			 * This error is thrown when trying to {@link ~Observable#set set} a property with
-			 * a name of an already existing property. For example:
-			 *
-			 *		let observable = new Model();
-			 *		observable.property = 1;
-			 *		observable.set( 'property', 2 );			// throws
-			 *
-			 *		observable.set( 'property', 1 );
-			 *		observable.set( 'property', 2 );			// ok, because this is an existing property.
-			 *
-			 * @error observable-set-cannot-override
-			 */
-			throw new CKEditorError( 'observable-set-cannot-override', this );
-		}
-
-		Object.defineProperty( this, name, {
-			enumerable: true,
-			configurable: true,
-
-			get() {
-				return properties!.get( name );
-			},
-
-			set( value ) {
-				const oldValue = properties!.get( name );
-
-				// Fire `set` event before the new value will be set to make it possible
-				// to override observable property without affecting `change` event.
-				// See https://github.com/ckeditor/ckeditor5-utils/issues/171.
-				let newValue = this.fire( 'set:' + name, name, value, oldValue );
-
-				if ( newValue === undefined ) {
-					newValue = value;
-				}
-
-				// Allow undefined as an initial value like A.define( 'x', undefined ) (#132).
-				// Note: When properties map has no such own property, then its value is undefined.
-				if ( oldValue !== newValue || !properties!.has( name ) ) {
-					properties!.set( name, newValue );
-					this.fire( 'change:' + name, name, newValue, oldValue );
-				}
-			}
-		} );
-
-		( this as any )[ name ] = value;
-	},
-
-	/**
-	 * @inheritDoc
-	 */
-	bind( ...bindProperties: string[] ): any {
-		if ( !bindProperties.length || !isStringArray( bindProperties ) ) {
-			/**
-			 * All properties must be strings.
-			 *
-			 * @error observable-bind-wrong-properties
-			 */
-			throw new CKEditorError( 'observable-bind-wrong-properties', this );
-		}
-
-		if ( ( new Set( bindProperties ) ).size !== bindProperties.length ) {
-			/**
-			 * Properties must be unique.
-			 *
-			 * @error observable-bind-duplicate-properties
-			 */
-			throw new CKEditorError( 'observable-bind-duplicate-properties', this );
-		}
-
-		initObservable( this );
-
-		const boundProperties = this[ boundPropertiesSymbol ];
-
-		bindProperties.forEach( propertyName => {
-			if ( boundProperties!.has( propertyName ) ) {
-				/**
-				 * Cannot bind the same property more than once.
-				 *
-				 * @error observable-bind-rebind
-				 */
-				throw new CKEditorError( 'observable-bind-rebind', this );
-			}
-		} );
-
-		const bindings = new Map<string, Binding>();
-
-		// @typedef {Object} Binding
-		// @property {Array} property Property which is bound.
-		// @property {Array} to Array of observable–property components of the binding (`{ observable: ..., property: .. }`).
-		// @property {Array} callback A function which processes `to` components.
-		bindProperties.forEach( a => {
-			const binding = { property: a, to: [] };
-
-			boundProperties!.set( a, binding );
-			bindings.set( a, binding );
-		} );
-
-		// @typedef {Object} BindChain
-		// @property {Function} to See {@link ~ObservableMixin#_bindTo}.
-		// @property {Function} toMany See {@link ~ObservableMixin#_bindToMany}.
-		// @property {module:utils/observablemixin~Observable} _observable The observable which initializes the binding.
-		// @property {Array} _bindProperties Array of `_observable` properties to be bound.
-		// @property {Array} _to Array of `to()` observable–properties (`{ observable: toObservable, properties: ...toProperties }`).
-		// @property {Map} _bindings Stores bindings to be kept in
-		// {@link ~ObservableMixin#_boundProperties}/{@link ~ObservableMixin#_boundObservables}
-		// initiated in this binding chain.
-		return {
-			to: bindTo,
-			toMany: bindToMany,
-
-			_observable: this,
-			_bindProperties: bindProperties,
-			_to: [],
-			_bindings: bindings
-		};
-	},
-
-	/**
-	 * @inheritDoc
-	 */
-	unbind( ...unbindProperties: string[] ): void {
-		// Nothing to do here if not inited yet.
-		if ( !( this[ observablePropertiesSymbol ] ) ) {
-			return;
-		}
-
-		const boundProperties = this[ boundPropertiesSymbol ]!;
-		const boundObservables = this[ boundObservablesSymbol ]!;
-
-		if ( unbindProperties.length ) {
-			if ( !isStringArray( unbindProperties ) ) {
-				/**
-				 * Properties must be strings.
-				 *
-				 * @error observable-unbind-wrong-properties
-				 */
-				throw new CKEditorError( 'observable-unbind-wrong-properties', this );
-			}
-
-			unbindProperties.forEach( propertyName => {
-				const binding = boundProperties.get( propertyName );
-
-				// Nothing to do if the binding is not defined
-				if ( !binding ) {
-					return;
-				}
-
-				binding.to.forEach( ( [ toObservable, toProperty ] ) => {
-					const toProperties = boundObservables.get( toObservable )!;
-					const toPropertyBindings = toProperties[ toProperty ];
-
-					toPropertyBindings.delete( binding );
-
-					if ( !toPropertyBindings.size ) {
-						delete toProperties[ toProperty ];
-					}
-
-					if ( !Object.keys( toProperties ).length ) {
-						boundObservables.delete( toObservable );
-						this.stopListening( toObservable, 'change' );
-					}
-				} );
-
-				boundProperties.delete( propertyName );
-			} );
-		} else {
-			boundObservables.forEach( ( bindings, boundObservable ) => {
-				this.stopListening( boundObservable, 'change' );
-			} );
-
-			boundObservables.clear();
-			boundProperties.clear();
-		}
-	},
-
-	/**
-	 * @inheritDoc
-	 */
-	decorate( this: Observable & { [ x: string ]: any }, methodName: string ): void {
-		initObservable( this );
-
-		const originalMethod = this[ methodName ];
-
-		if ( !originalMethod ) {
-			/**
-			 * Cannot decorate an undefined method.
-			 *
-			 * @error observablemixin-cannot-decorate-undefined
-			 * @param {Object} object The object which method should be decorated.
-			 * @param {String} methodName Name of the method which does not exist.
-			 */
-			throw new CKEditorError(
-				'observablemixin-cannot-decorate-undefined',
-				this,
-				{ object: this, methodName }
-			);
-		}
-
-		this.on( methodName, ( evt, args ) => {
-			evt.return = originalMethod.apply( this, args );
-		} );
-
-		this[ methodName ] = function( ...args: unknown[] ) {
-			return this.fire( methodName, args );
-		};
-
-		this[ methodName ][ decoratedOriginal ] = originalMethod;
-
-		if ( !this[ decoratedMethods ] ) {
-			this[ decoratedMethods ] = [];
-		}
-
-		this[ decoratedMethods ]!.push( methodName );
-	},
-
-	...EmitterMixin
+export default function ObservableMixin(): {
+	new (): Observable;
+	prototype: Observable;
 };
 
-// Override the EmitterMixin stopListening method to be able to clean (and restore) decorated methods.
-// This is needed in case of:
-//  1. Have x.foo() decorated.
-//  2. Call x.stopListening()
-//  3. Call x.foo(). Problem: nothing happens (the original foo() method is not executed)
-ObservableMixin.stopListening = function(
-	this: Observable & { [ x: string ]: any },
-	emitter?,
-	event?,
-	callback?
-): void {
-	// Removing all listeners so let's clean the decorated methods to the original state.
-	if ( !emitter && this[ decoratedMethods ] ) {
-		for ( const methodName of this[ decoratedMethods ]! ) {
-			this[ methodName ] = this[ methodName ][ decoratedOriginal ];
-		}
-
-		delete this[ decoratedMethods ];
+export default function ObservableMixin( base?: abstract new( ...args: Array<any> ) => Emitter ): unknown {
+	if ( !base ) {
+		return defaultObservableClass;
 	}
 
-	EmitterMixin.stopListening.call( this, emitter, event, callback );
-};
+	abstract class Mixin extends base implements ObservableInternal {
+		public set( name: string | { [ name: string ]: unknown }, value?: unknown ): void {
+			// If the first parameter is an Object, iterate over its properties.
+			if ( isObject( name ) ) {
+				Object.keys( name ).forEach( property => {
+					this.set( property, name[ property ] );
+				}, this );
 
-export default ObservableMixin;
+				return;
+			}
+
+			initObservable( this );
+
+			const properties = this[ observablePropertiesSymbol ];
+
+			if ( ( name in this ) && !properties!.has( name ) ) {
+				/**
+				 * Cannot override an existing property.
+				 *
+				 * This error is thrown when trying to {@link module:utils/observablemixin~Observable#set set} a property with
+				 * a name of an already existing property. For example:
+				 *
+				 * ```ts
+				 * let observable = new Model();
+				 * observable.property = 1;
+				 * observable.set( 'property', 2 );			// throws
+				 *
+				 * observable.set( 'property', 1 );
+				 * observable.set( 'property', 2 );			// ok, because this is an existing property.
+				 * ```
+				 *
+				 * @error observable-set-cannot-override
+				 */
+				throw new CKEditorError( 'observable-set-cannot-override', this );
+			}
+
+			Object.defineProperty( this, name, {
+				enumerable: true,
+				configurable: true,
+
+				get() {
+					return properties!.get( name );
+				},
+
+				set( this: Observable, value ) {
+					const oldValue = properties!.get( name );
+
+					// Fire `set` event before the new value will be set to make it possible
+					// to override observable property without affecting `change` event.
+					// See https://github.com/ckeditor/ckeditor5-utils/issues/171.
+					let newValue = this.fire<ObservableSetEvent>( `set:${ name }`, name, value, oldValue );
+
+					if ( newValue === undefined ) {
+						newValue = value;
+					}
+
+					// Allow undefined as an initial value like A.define( 'x', undefined ) (#132).
+					// Note: When properties map has no such own property, then its value is undefined.
+					if ( oldValue !== newValue || !properties!.has( name ) ) {
+						properties!.set( name, newValue );
+						this.fire<ObservableChangeEvent>( `change:${ name }`, name, newValue, oldValue );
+					}
+				}
+			} );
+
+			( this as any )[ name ] = value;
+		}
+
+		public bind( ...bindProperties: Array<string> ): any {
+			if ( !bindProperties.length || !isStringArray( bindProperties ) ) {
+				/**
+				 * All properties must be strings.
+				 *
+				 * @error observable-bind-wrong-properties
+				 */
+				throw new CKEditorError( 'observable-bind-wrong-properties', this );
+			}
+
+			if ( ( new Set( bindProperties ) ).size !== bindProperties.length ) {
+				/**
+				 * Properties must be unique.
+				 *
+				 * @error observable-bind-duplicate-properties
+				 */
+				throw new CKEditorError( 'observable-bind-duplicate-properties', this );
+			}
+
+			initObservable( this );
+
+			const boundProperties = this[ boundPropertiesSymbol ];
+
+			bindProperties.forEach( propertyName => {
+				if ( boundProperties!.has( propertyName ) ) {
+					/**
+					 * Cannot bind the same property more than once.
+					 *
+					 * @error observable-bind-rebind
+					 */
+					throw new CKEditorError( 'observable-bind-rebind', this );
+				}
+			} );
+
+			const bindings = new Map<string, Binding>();
+
+			bindProperties.forEach( a => {
+				const binding = { property: a, to: [] };
+
+				boundProperties!.set( a, binding );
+				bindings.set( a, binding );
+			} );
+
+			return {
+				to: bindTo,
+				toMany: bindToMany,
+
+				_observable: this,
+				_bindProperties: bindProperties,
+				_to: [],
+				_bindings: bindings
+			};
+		}
+
+		public unbind( ...unbindProperties: Array<keyof this & string> ): void {
+			// Nothing to do here if not inited yet.
+			if ( !( this[ observablePropertiesSymbol ] ) ) {
+				return;
+			}
+
+			const boundProperties = this[ boundPropertiesSymbol ]!;
+			const boundObservables = this[ boundObservablesSymbol ]!;
+
+			if ( unbindProperties.length ) {
+				if ( !isStringArray( unbindProperties ) ) {
+					/**
+					 * Properties must be strings.
+					 *
+					 * @error observable-unbind-wrong-properties
+					 */
+					throw new CKEditorError( 'observable-unbind-wrong-properties', this );
+				}
+
+				unbindProperties.forEach( propertyName => {
+					const binding = boundProperties.get( propertyName );
+
+					// Nothing to do if the binding is not defined
+					if ( !binding ) {
+						return;
+					}
+
+					binding.to.forEach( ( [ toObservable, toProperty ] ) => {
+						const toProperties = boundObservables.get( toObservable )!;
+						const toPropertyBindings = toProperties[ toProperty ];
+
+						toPropertyBindings.delete( binding );
+
+						if ( !toPropertyBindings.size ) {
+							delete toProperties[ toProperty ];
+						}
+
+						if ( !Object.keys( toProperties ).length ) {
+							boundObservables.delete( toObservable );
+							this.stopListening( toObservable, 'change' );
+						}
+					} );
+
+					boundProperties.delete( propertyName );
+				} );
+			} else {
+				boundObservables.forEach( ( bindings, boundObservable ) => {
+					this.stopListening( boundObservable, 'change' );
+				} );
+
+				boundObservables.clear();
+				boundProperties.clear();
+			}
+		}
+
+		public decorate( this: this & { [ x: string ]: any }, methodName: keyof this & string ): void {
+			initObservable( this );
+
+			const originalMethod = this[ methodName ];
+
+			if ( !originalMethod ) {
+				/**
+				 * Cannot decorate an undefined method.
+				 *
+				 * @error observablemixin-cannot-decorate-undefined
+				 * @param {Object} object The object which method should be decorated.
+				 * @param {String} methodName Name of the method which does not exist.
+				 */
+				throw new CKEditorError(
+					'observablemixin-cannot-decorate-undefined',
+					this,
+					{ object: this, methodName }
+				);
+			}
+
+			this.on( methodName, ( evt, args ) => {
+				evt.return = originalMethod.apply( this, args );
+			} );
+
+			this[ methodName ] = function( ...args: Array<unknown> ) {
+				return this.fire( methodName, args );
+			};
+
+			this[ methodName ][ decoratedOriginal ] = originalMethod;
+
+			if ( !this[ decoratedMethods ] ) {
+				this[ decoratedMethods ] = [];
+			}
+
+			this[ decoratedMethods ]!.push( methodName );
+		}
+
+		// Override the EmitterMixin stopListening method to be able to clean (and restore) decorated methods.
+		// This is needed in case of:
+		//  1. Have x.foo() decorated.
+		//  2. Call x.stopListening()
+		//  3. Call x.foo(). Problem: nothing happens (the original foo() method is not executed)
+		public override stopListening(
+			this: ObservableInternal & { [ x: string ]: any },
+			emitter?: Emitter,
+			event?: string,
+			callback?: Function
+		): void {
+			// Removing all listeners so let's clean the decorated methods to the original state.
+			if ( !emitter && this[ decoratedMethods ] ) {
+				for ( const methodName of this[ decoratedMethods ]! ) {
+					this[ methodName ] = this[ methodName ][ decoratedOriginal ];
+				}
+
+				delete this[ decoratedMethods ];
+			}
+
+			super.stopListening( emitter, event, callback );
+		}
+
+		public [ observablePropertiesSymbol ]?: Map<string, unknown>;
+
+		public [ decoratedMethods ]?: Array<string>;
+
+		public [ boundPropertiesSymbol ]?: Map<string, Binding>;
+
+		public [ boundObservablesSymbol]?: Map<Observable, Record<string, Set<Binding>>>;
+	}
+
+	return Mixin;
+}
+
+// Backward compatibility with `mix`
+( [
+	'set', 'bind', 'unbind', 'decorate',
+	'on', 'once', 'off', 'listenTo',
+	'stopListening', 'fire', 'delegate', 'stopDelegating',
+	'_addEventListener', '_removeEventListener'
+] ).forEach( key => {
+	( ObservableMixin as any )[ key ] = ( defaultObservableClass.prototype as any )[ key ];
+} );
 
 interface Binding {
+
+	/**
+	 * Property which is bound.
+	 */
 	property: string;
-	to: [ Observable, string ][];
+
+	/**
+	 * Array of observable–property components of the binding (`{ observable: ..., property: .. }`).
+	 */
+	to: Array<[ Observable, string ]>;
+
+	/**
+	 * A function which processes `to` components.
+	 */
 	callback?: Function;
 }
 
@@ -308,35 +356,29 @@ interface BindChainInternal {
 	to: Function;
 	_observable: Observable;
 	_bindings: Map<string, Binding>;
-	_bindProperties: string[];
-	_to: {
+	_bindProperties: Array<string>;
+	_to: Array<{
 		observable: Observable;
-		properties: string[];
-	}[];
+		properties: Array<string>;
+	}>;
 }
 
 // Init symbol properties needed for the observable mechanism to work.
-//
-// @private
-// @param {module:utils/observablemixin~ObservableMixin} observable
-function initObservable<T extends Observable>( observable: T ): void {
+function initObservable( observable: ObservableInternal ): void {
 	// Do nothing if already inited.
 	if ( observable[ observablePropertiesSymbol ] ) {
 		return;
 	}
 
 	// The internal hash containing the observable's state.
-	//
-	// @private
-	// @type {Map}
 	Object.defineProperty( observable, observablePropertiesSymbol, {
 		value: new Map()
 	} );
 
 	// Map containing bindings to external observables. It shares the binding objects
-	// (`{ observable: A, property: 'a', to: ... }`) with {@link module:utils/observablemixin~ObservableMixin#_boundProperties} and
+	// (`{ observable: A, property: 'a', to: ... }`) with {@link module:utils/observablemixin~Observable#_boundProperties} and
 	// it is used to observe external observables to update own properties accordingly.
-	// See {@link module:utils/observablemixin~ObservableMixin#bind}.
+	// See {@link module:utils/observablemixin~Observable#bind}.
 	//
 	//		A.bind( 'a', 'b', 'c' ).to( B, 'x', 'y', 'x' );
 	//		console.log( A._boundObservables );
@@ -376,19 +418,17 @@ function initObservable<T extends Observable>( observable: T ): void {
 	//				}
 	//			} )
 	//
-	// @private
-	// @type {Map}
 	Object.defineProperty( observable, boundObservablesSymbol, {
 		value: new Map()
 	} );
 
 	// Object that stores which properties of this observable are bound and how. It shares
 	// the binding objects (`{ observable: A, property: 'a', to: ... }`) with
-	// {@link module:utils/observablemixin~ObservableMixin#_boundObservables}. This data structure is
-	// a reverse of {@link module:utils/observablemixin~ObservableMixin#_boundObservables} and it is helpful for
-	// {@link module:utils/observablemixin~ObservableMixin#unbind}.
+	// {@link module:utils/observablemixin~Observable#_boundObservables}. This data structure is
+	// a reverse of {@link module:utils/observablemixin~Observable#_boundObservables} and it is helpful for
+	// {@link module:utils/observablemixin~Observable#unbind}.
 	//
-	// See {@link module:utils/observablemixin~ObservableMixin#bind}.
+	// See {@link module:utils/observablemixin~Observable#bind}.
 	//
 	//		A.bind( 'a', 'b', 'c' ).to( B, 'x', 'y', 'x' );
 	//		console.log( A._boundProperties );
@@ -408,19 +448,17 @@ function initObservable<T extends Observable>( observable: T ): void {
 	//				c: { observable: A, property: 'c', to: [ [ B, 'x' ] ] },
 	//				d: { observable: A, property: 'd', to: [ [ B, 'z' ], [ C, 'w' ] ], callback: callback }
 	//			} )
-	//
-	// @private
-	// @type {Map}
 	Object.defineProperty( observable, boundPropertiesSymbol, {
 		value: new Map()
 	} );
 }
 
-// A chaining for {@link module:utils/observablemixin~ObservableMixin#bind} providing `.to()` interface.
-//
-// @private
-// @param {...[Observable|String|Function]} args Arguments of the `.to( args )` binding.
-function bindTo( this: BindChainInternal, ...args: ( Observable | string | Function )[] ): void {
+/**
+ * A chaining for {@link module:utils/observablemixin~Observable#bind} providing `.to()` interface.
+ *
+ * @param args Arguments of the `.to( args )` binding.
+ */
+function bindTo( this: BindChainInternal, ...args: Array<Observable | string | Function> ): void {
 	const parsedArgs = parseBindToArgs( ...args );
 	const bindingsKeys = Array.from( this._bindings.keys() );
 	const numberOfBindings = bindingsKeys.length;
@@ -484,13 +522,10 @@ function bindTo( this: BindChainInternal, ...args: ( Observable | string | Funct
 	} );
 }
 
-// Binds to an attribute in a set of iterable observables.
-//
-// @private
-// @param {Array.<Observable>} observables
-// @param {String} attribute
-// @param {Function} callback
-function bindToMany( this: BindChainInternal, observables: Observable[], attribute: string, callback: Function ): void {
+/**
+ * Binds to an attribute in a set of iterable observables.
+ */
+function bindToMany( this: BindChainInternal, observables: Array<Observable>, attribute: string, callback: Function ): void {
 	if ( this._bindings.size > 1 ) {
 		/**
 		 * Binding one attribute to many observables only possible with one attribute.
@@ -508,47 +543,46 @@ function bindToMany( this: BindChainInternal, observables: Observable[], attribu
 	);
 }
 
-// Returns an array of binding components for
-// {@link Observable#bind} from a set of iterable observables.
-//
-// @param {Array.<Observable>} observables
-// @param {String} attribute
-// @returns {Array.<String|Observable>}
-function getBindingTargets( observables: Observable[], attribute: string ): ( Observable | string )[] {
+/**
+ * Returns an array of binding components for
+ * {@link Observable#bind} from a set of iterable observables.
+ */
+function getBindingTargets( observables: Array<Observable>, attribute: string ): Array<Observable | string> {
 	const observableAndAttributePairs = observables.map( observable => [ observable, attribute ] );
 
 	// Merge pairs to one-dimension array of observables and attributes.
 	return Array.prototype.concat.apply( [], observableAndAttributePairs );
 }
 
-// Check if all entries of the array are of `String` type.
-//
-// @private
-// @param {Array} arr An array to be checked.
-// @returns {Boolean}
-function isStringArray( arr: unknown[] ): arr is string[] {
+/**
+ * Check if all entries of the array are of `String` type.
+ */
+function isStringArray( arr: Array<unknown> ): arr is Array<string> {
 	return arr.every( a => typeof a == 'string' );
 }
 
-// Parses and validates {@link Observable#bind}`.to( args )` arguments and returns
-// an object with a parsed structure. For example
-//
-//		A.bind( 'x' ).to( B, 'a', C, 'b', call );
-//
-// becomes
-//
-//		{
-//			to: [
-//				{ observable: B, properties: [ 'a' ] },
-//				{ observable: C, properties: [ 'b' ] },
-//			],
-//			callback: call
-// 		}
-//
-// @private
-// @param {...*} args Arguments of {@link Observable#bind}`.to( args )`.
-// @returns {Object}
-function parseBindToArgs( ...args: ( Observable | string | Function )[] ) {
+/**
+ * Parses and validates {@link Observable#bind}`.to( args )` arguments and returns
+ * an object with a parsed structure. For example
+ *
+ * ```ts
+ * A.bind( 'x' ).to( B, 'a', C, 'b', call );
+ * ```
+ *
+ * becomes
+ *
+ * ```ts
+ * {
+ * 	to: [
+ * 		{ observable: B, properties: [ 'a' ] },
+ * 		{ observable: C, properties: [ 'b' ] },
+ * 	],
+ * 	callback: call
+ * }
+ *
+ * @param args Arguments of {@link Observable#bind}`.to( args )`.
+ */
+function parseBindToArgs( ...args: Array<Observable | string | Function> ) {
 	// Eliminate A.bind( 'x' ).to()
 	if ( !args.length ) {
 		/**
@@ -560,7 +594,7 @@ function parseBindToArgs( ...args: ( Observable | string | Function )[] ) {
 	}
 
 	const parsed: { to: BindChainInternal[ '_to' ]; callback?: Function } = { to: [] };
-	let lastObservable: { observable: Observable; properties: string[] };
+	let lastObservable: { observable: Observable; properties: Array<string> };
 
 	if ( typeof args[ args.length - 1 ] == 'function' ) {
 		parsed.callback = args.pop() as Function;
@@ -580,14 +614,15 @@ function parseBindToArgs( ...args: ( Observable | string | Function )[] ) {
 	return parsed;
 }
 
-// Synchronizes {@link module:utils/observablemixin#_boundObservables} with {@link Binding}.
-//
-// @private
-// @param {Binding} binding A binding to store in {@link Observable#_boundObservables}.
-// @param {Observable} toObservable A observable, which is a new component of `binding`.
-// @param {String} toPropertyName A name of `toObservable`'s property, a new component of the `binding`.
+/**
+ * Synchronizes {@link module:utils/observable#_boundObservables} with {@link Binding}.
+ *
+ * @param binding A binding to store in {@link Observable#_boundObservables}.
+ * @param toObservable A observable, which is a new component of `binding`.
+ * @param toPropertyName A name of `toObservable`'s property, a new component of the `binding`.
+ */
 function updateBoundObservables(
-	observable: Observable,
+	observable: ObservableInternal,
 	binding: Binding,
 	toObservable: Observable,
 	toPropertyName: string
@@ -608,44 +643,53 @@ function updateBoundObservables(
 	}
 }
 
-// Synchronizes {@link Observable#_boundProperties} and {@link Observable#_boundObservables}
-// with {@link BindChain}.
-//
-// Assuming the following binding being created
-//
-// 		A.bind( 'a', 'b' ).to( B, 'x', 'y' );
-//
-// the following bindings were initialized by {@link Observable#bind} in {@link BindChain#_bindings}:
-//
-// 		{
-// 			a: { observable: A, property: 'a', to: [] },
-// 			b: { observable: A, property: 'b', to: [] },
-// 		}
-//
-// Iterate over all bindings in this chain and fill their `to` properties with
-// corresponding to( ... ) arguments (components of the binding), so
-//
-// 		{
-// 			a: { observable: A, property: 'a', to: [ B, 'x' ] },
-// 			b: { observable: A, property: 'b', to: [ B, 'y' ] },
-// 		}
-//
-// Then update the structure of {@link Observable#_boundObservables} with updated
-// binding, so it becomes:
-//
-// 		Map( {
-// 			B: {
-// 				x: Set( [
-// 					{ observable: A, property: 'a', to: [ [ B, 'x' ] ] }
-// 				] ),
-// 				y: Set( [
-// 					{ observable: A, property: 'b', to: [ [ B, 'y' ] ] },
-// 				] )
-//			}
-// 		} )
-//
-// @private
-// @param {BindChain} chain The binding initialized by {@link Observable#bind}.
+/**
+ * Synchronizes {@link Observable#_boundProperties} and {@link Observable#_boundObservables}
+ * with {@link BindChain}.
+ *
+ * Assuming the following binding being created
+ *
+ * ```ts
+ * A.bind( 'a', 'b' ).to( B, 'x', 'y' );
+ * ```
+ *
+ * the following bindings were initialized by {@link Observable#bind} in {@link BindChain#_bindings}:
+ *
+ * ```ts
+ * {
+ * 	a: { observable: A, property: 'a', to: [] },
+ * 	b: { observable: A, property: 'b', to: [] },
+ * }
+ * ```
+ *
+ * Iterate over all bindings in this chain and fill their `to` properties with
+ * corresponding to( ... ) arguments (components of the binding), so
+ *
+ * ```ts
+ * {
+ * 	a: { observable: A, property: 'a', to: [ B, 'x' ] },
+ * 	b: { observable: A, property: 'b', to: [ B, 'y' ] },
+ * }
+ * ```
+ *
+ * Then update the structure of {@link Observable#_boundObservables} with updated
+ * binding, so it becomes:
+ *
+ * ```ts
+ * Map( {
+ * 	B: {
+ * 		x: Set( [
+ * 			{ observable: A, property: 'a', to: [ [ B, 'x' ] ] }
+ * 		] ),
+ * 		y: Set( [
+ * 			{ observable: A, property: 'b', to: [ [ B, 'y' ] ] },
+ * 		] )
+ * 	}
+ * } )
+ * ```
+ *
+ * @param chain The binding initialized by {@link Observable#bind}.
+ */
 function updateBindToBound( chain: BindChainInternal ): void {
 	let toProperty;
 
@@ -662,13 +706,14 @@ function updateBindToBound( chain: BindChainInternal ): void {
 	} );
 }
 
-// Updates an property of a {@link Observable} with a value
-// determined by an entry in {@link Observable#_boundProperties}.
-//
-// @private
-// @param {Observable} observable A observable which property is to be updated.
-// @param {String} propertyName An property to be updated.
-function updateBoundObservableProperty( observable: Observable, propertyName: string ): void {
+/**
+ * Updates an property of a {@link Observable} with a value
+ * determined by an entry in {@link Observable#_boundProperties}.
+ *
+ * @param observable A observable which property is to be updated.
+ * @param propertyName An property to be updated.
+ */
+function updateBoundObservableProperty( observable: ObservableInternal, propertyName: string ): void {
 	const boundProperties = observable[ boundPropertiesSymbol ]!;
 	const binding = boundProperties.get( propertyName )!;
 	let propertyValue;
@@ -692,14 +737,14 @@ function updateBoundObservableProperty( observable: Observable, propertyName: st
 	}
 }
 
-// Starts listening to changes in {@link BindChain._to} observables to update
-// {@link BindChain._observable} {@link BindChain._bindProperties}. Also sets the
-// initial state of {@link BindChain._observable}.
-//
-// @private
-// @param {Observable} observable
-// @param {BindChain} chain The chain initialized by {@link Observable#bind}.
-function attachBindToListeners( observable: Observable, toBindings: BindChainInternal[ '_to' ] ): void {
+/**
+ * Starts listening to changes in {@link BindChain._to} observables to update
+ * {@link BindChain._observable} {@link BindChain._bindProperties}. Also sets the
+ * initial state of {@link BindChain._observable}.
+ *
+ * @param chain The chain initialized by {@link Observable#bind}.
+ */
+function attachBindToListeners( observable: ObservableInternal, toBindings: BindChainInternal[ '_to' ] ): void {
 	toBindings.forEach( to => {
 		const boundObservables = observable[ boundObservablesSymbol ]!;
 		let bindings;
@@ -707,7 +752,7 @@ function attachBindToListeners( observable: Observable, toBindings: BindChainInt
 		// If there's already a chain between the observables (`observable` listens to
 		// `to.observable`), there's no need to create another `change` event listener.
 		if ( !boundObservables.get( to.observable ) ) {
-			observable.listenTo( to.observable, 'change', ( evt, propertyName ) => {
+			observable.listenTo<ObservableChangeEvent>( to.observable, 'change', ( evt, propertyName ) => {
 				bindings = boundObservables.get( to.observable )![ propertyName ];
 
 				// Note: to.observable will fire for any property change, react
@@ -727,13 +772,16 @@ function attachBindToListeners( observable: Observable, toBindings: BindChainInt
  *
  * Can be easily implemented by a class by mixing the {@link module:utils/observablemixin~ObservableMixin} mixin.
  *
+ * ```ts
+ * class MyClass extends ObservableMixin( OtherBaseClass ) {
+ * 	// This class now implements the `Observable` interface.
+ * }
+ * ```
+ *
  * Read more about the usage of this interface in the:
  * * {@glink framework/guides/architecture/core-editor-architecture#event-system-and-observables Event system and observables}
  * section of the {@glink framework/guides/architecture/core-editor-architecture Core editor architecture} guide,
- * * {@glink framework/guides/deep-dive/observables Observables deep dive} guide.
- *
- * @interface Observable
- * @extends module:utils/emittermixin~Emitter
+ * * {@glink framework/guides/deep-dive/observables Observables deep-dive guide}.
  */
 export interface Observable extends Emitter {
 
@@ -741,22 +789,202 @@ export interface Observable extends Emitter {
 	 * Creates and sets the value of an observable property of this object. Such a property becomes a part
 	 * of the state and is observable.
 	 *
-	 * It accepts also a single object literal containing key/value pairs with properties to be set.
+	 * This method throws the `observable-set-cannot-override` error if the observable instance already
+	 * has a property with the given property name. This prevents from mistakenly overriding existing
+	 * properties and methods, but means that `foo.set( 'bar', 1 )` may be slightly slower than `foo.bar = 1`.
+	 *
+	 * In TypeScript, those properties should be declared in class using `declare` keyword. In example:
+	 *
+	 * ```ts
+	 * public declare myProp: number;
+	 *
+	 * constructor() {
+	 * 	this.set( 'myProp', 2 );
+	 * }
+	 * ```
+	 *
+	 * @param name The property's name.
+	 * @param value The property's value.
+	 */
+	set<K extends keyof this & string>( name: K, value: this[ K ] ): void;
+
+	/**
+	 * Creates and sets the value of an observable properties of this object. Such a property becomes a part
+	 * of the state and is observable.
+	 *
+	 * It accepts a single object literal containing key/value pairs with properties to be set.
 	 *
 	 * This method throws the `observable-set-cannot-override` error if the observable instance already
 	 * has a property with the given property name. This prevents from mistakenly overriding existing
 	 * properties and methods, but means that `foo.set( 'bar', 1 )` may be slightly slower than `foo.bar = 1`.
 	 *
-	 * @method #set
-	 * @param {String|Object} name The property's name or object with `name=>value` pairs.
-	 * @param {*} [value] The property's value (if `name` was passed in the first parameter).
+	 * In TypeScript, those properties should be declared in class using `declare` keyword. In example:
+	 *
+	 * ```ts
+	 * public declare myProp1: number;
+	 * public declare myProp2: string;
+	 *
+	 * constructor() {
+	 * 	this.set( {
+	 * 		'myProp1: 2,
+	 * 		'myProp2: 'foo'
+	 * 	} );
+	 * }
+	 * ```
+	 *
+	 * @param values An object with `name=>value` pairs.
 	 */
-	set<K extends keyof this & string>( name: K, value: this[ K ] ): void;
-	set( values: { readonly [ K in keyof this ]?: unknown } ): void;
+	set( values: object & { readonly [ K in keyof this ]?: unknown } ): void;
 
+	/**
+	 * Binds {@link #set observable properties} to other objects implementing the
+	 * {@link module:utils/observablemixin~Observable} interface.
+	 *
+	 * Read more in the {@glink framework/guides/deep-dive/observables#property-bindings dedicated guide}
+	 * covering the topic of property bindings with some additional examples.
+	 *
+	 * Consider two objects: a `button` and an associated `command` (both `Observable`).
+	 *
+	 * A simple property binding could be as follows:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled' );
+	 * ```
+	 *
+	 * or even shorter:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * ```
+	 *
+	 * which works in the following way:
+	 *
+	 * * `button.isEnabled` **instantly equals** `command.isEnabled`,
+	 * * whenever `command.isEnabled` changes, `button.isEnabled` will immediately reflect its value.
+	 *
+	 * **Note**: To release the binding, use {@link module:utils/observablemixin~Observable#unbind}.
+	 *
+	 * You can also "rename" the property in the binding by specifying the new name in the `to()` chain:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isWorking' );
+	 * ```
+	 *
+	 * It is possible to bind more than one property at a time to shorten the code:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled', 'value' ).to( command );
+	 * ```
+	 *
+	 * which corresponds to:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * button.bind( 'value' ).to( command );
+	 * ```
+	 *
+	 * The binding can include more than one observable, combining multiple data sources in a custom callback:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled', ui, 'isVisible',
+	 * 	( isCommandEnabled, isUIVisible ) => isCommandEnabled && isUIVisible );
+	 * ```
+	 *
+	 * Using a custom callback allows processing the value before passing it to the target property:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'value', value => value === 'heading1' );
+	 * ```
+	 *
+	 * It is also possible to bind to the same property in an array of observables.
+	 * To bind a `button` to multiple commands (also `Observables`) so that each and every one of them
+	 * must be enabled for the button to become enabled, use the following code:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).toMany( [ commandA, commandB, commandC ], 'isEnabled',
+	 * 	( isAEnabled, isBEnabled, isCEnabled ) => isAEnabled && isBEnabled && isCEnabled );
+	 * ```
+	 *
+	 * @param bindProperty Observable property that will be bound to other observable(s).
+	 * @returns The bind chain with the `to()` and `toMany()` methods.
+	 */
 	bind<K extends keyof this & string>(
 		bindProperty: K
 	): SingleBindChain<K, this[ K ]>;
+
+	/**
+	 * Binds {@link #set observable properties} to other objects implementing the
+	 * {@link module:utils/observablemixin~Observable} interface.
+	 *
+	 * Read more in the {@glink framework/guides/deep-dive/observables#property-bindings dedicated guide}
+	 * covering the topic of property bindings with some additional examples.
+	 *
+	 * Consider two objects: a `button` and an associated `command` (both `Observable`).
+	 *
+	 * A simple property binding could be as follows:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled' );
+	 * ```
+	 *
+	 * or even shorter:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * ```
+	 *
+	 * which works in the following way:
+	 *
+	 * * `button.isEnabled` **instantly equals** `command.isEnabled`,
+	 * * whenever `command.isEnabled` changes, `button.isEnabled` will immediately reflect its value.
+	 *
+	 * **Note**: To release the binding, use {@link module:utils/observablemixin~Observable#unbind}.
+	 *
+	 * You can also "rename" the property in the binding by specifying the new name in the `to()` chain:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isWorking' );
+	 * ```
+	 *
+	 * It is possible to bind more than one property at a time to shorten the code:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled', 'value' ).to( command );
+	 * ```
+	 *
+	 * which corresponds to:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * button.bind( 'value' ).to( command );
+	 * ```
+	 *
+	 * The binding can include more than one observable, combining multiple data sources in a custom callback:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled', ui, 'isVisible',
+	 * 	( isCommandEnabled, isUIVisible ) => isCommandEnabled && isUIVisible );
+	 * ```
+	 *
+	 * Using a custom callback allows processing the value before passing it to the target property:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'value', value => value === 'heading1' );
+	 * ```
+	 *
+	 * It is also possible to bind to the same property in an array of observables.
+	 * To bind a `button` to multiple commands (also `Observables`) so that each and every one of them
+	 * must be enabled for the button to become enabled, use the following code:
+	 *
+	 * ```ts
+	 * button.bind( 'isEnabled' ).toMany( [ commandA, commandB, commandC ], 'isEnabled',
+	 * 	( isAEnabled, isBEnabled, isCEnabled ) => isAEnabled && isBEnabled && isCEnabled );
+	 * ```
+	 *
+	 * @param bindProperty1 Observable property that will be bound to other observable(s).
+	 * @param bindProperty2 Observable property that will be bound to other observable(s).
+	 * @returns The bind chain with the `to()` and `toMany()` methods.
+	 */
 	bind<K1 extends keyof this & string, K2 extends keyof this & string>(
 		bindProperty1: K1,
 		bindProperty2: K2
@@ -773,11 +1001,15 @@ export interface Observable extends Emitter {
 	 *
 	 * A simple property binding could be as follows:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command, 'isEnabled' );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled' );
+	 * ```
 	 *
 	 * or even shorter:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * ```
 	 *
 	 * which works in the following way:
 	 *
@@ -788,53 +1020,65 @@ export interface Observable extends Emitter {
 	 *
 	 * You can also "rename" the property in the binding by specifying the new name in the `to()` chain:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command, 'isWorking' );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isWorking' );
+	 * ```
 	 *
 	 * It is possible to bind more than one property at a time to shorten the code:
 	 *
-	 *		button.bind( 'isEnabled', 'value' ).to( command );
+	 * ```ts
+	 * button.bind( 'isEnabled', 'value' ).to( command );
+	 * ```
 	 *
 	 * which corresponds to:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command );
-	 *		button.bind( 'value' ).to( command );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command );
+	 * button.bind( 'value' ).to( command );
+	 * ```
 	 *
 	 * The binding can include more than one observable, combining multiple data sources in a custom callback:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command, 'isEnabled', ui, 'isVisible',
-	 *			( isCommandEnabled, isUIVisible ) => isCommandEnabled && isUIVisible );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'isEnabled', ui, 'isVisible',
+	 * 	( isCommandEnabled, isUIVisible ) => isCommandEnabled && isUIVisible );
+	 * ```
 	 *
 	 * Using a custom callback allows processing the value before passing it to the target property:
 	 *
-	 *		button.bind( 'isEnabled' ).to( command, 'value', value => value === 'heading1' );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).to( command, 'value', value => value === 'heading1' );
+	 * ```
 	 *
 	 * It is also possible to bind to the same property in an array of observables.
 	 * To bind a `button` to multiple commands (also `Observables`) so that each and every one of them
 	 * must be enabled for the button to become enabled, use the following code:
 	 *
-	 *		button.bind( 'isEnabled' ).toMany( [ commandA, commandB, commandC ], 'isEnabled',
-	 *			( isAEnabled, isBEnabled, isCEnabled ) => isAEnabled && isBEnabled && isCEnabled );
+	 * ```ts
+	 * button.bind( 'isEnabled' ).toMany( [ commandA, commandB, commandC ], 'isEnabled',
+	 * 	( isAEnabled, isBEnabled, isCEnabled ) => isAEnabled && isBEnabled && isCEnabled );
+	 * ```
 	 *
-	 * @method #bind
-	 * @param {...String} bindProperties Observable properties that will be bound to other observable(s).
-	 * @returns {Object} The bind chain with the `to()` and `toMany()` methods.
+	 * @param bindProperties Observable properties that will be bound to other observable(s).
+	 * @returns The bind chain with the `to()` and `toMany()` methods.
 	 */
-	bind( ...bindProperties: ( keyof this & string )[] ): MultiBindChain;
+	bind( ...bindProperties: Array<keyof this & string> ): MultiBindChain;
 
 	/**
 	 * Removes the binding created with {@link #bind}.
 	 *
-	 *		// Removes the binding for the 'a' property.
-	 *		A.unbind( 'a' );
+	 * ```ts
+	 * // Removes the binding for the 'a' property.
+	 * A.unbind( 'a' );
 	 *
-	 *		// Removes bindings for all properties.
-	 *		A.unbind();
+	 * // Removes bindings for all properties.
+	 * A.unbind();
+	 * ```
 	 *
-	 * @method
-	 * @param {...String} [unbindProperties] Observable properties to be unbound. All the bindings will
+	 * @param unbindProperties Observable properties to be unbound. All the bindings will
 	 * be released if no properties are provided.
 	 */
-	unbind( ...unbindProperties: ( keyof this & string )[] ): void;
+	unbind( ...unbindProperties: Array<keyof this & string> ): void;
 
 	/**
 	 * Turns the given methods of this object into event-based ones. This means that the new method will fire an event
@@ -848,22 +1092,25 @@ export interface Observable extends Emitter {
 	 *
 	 * For example, to cancel the method execution the event can be {@link module:utils/eventinfo~EventInfo#stop stopped}:
 	 *
-	 *		class Foo {
-	 *			constructor() {
-	 *				this.decorate( 'method' );
-	 *			}
+	 * ```ts
+	 * class Foo extends ObservableMixin() {
+	 * 	constructor() {
+	 * 		super();
+	 * 		this.decorate( 'method' );
+	 * 	}
 	 *
-	 *			method() {
-	 *				console.log( 'called!' );
-	 *			}
-	 *		}
+	 * 	method() {
+	 * 		console.log( 'called!' );
+	 * 	}
+	 * }
 	 *
-	 *		const foo = new Foo();
-	 *		foo.on( 'method', ( evt ) => {
-	 *			evt.stop();
-	 *		}, { priority: 'high' } );
+	 * const foo = new Foo();
+	 * foo.on( 'method', ( evt ) => {
+	 * 	evt.stop();
+	 * }, { priority: 'high' } );
 	 *
-	 *		foo.method(); // Nothing is logged.
+	 * foo.method(); // Nothing is logged.
+	 * ```
 	 *
 	 *
 	 * **Note**: The high {@link module:utils/priorities~PriorityString priority} listener
@@ -872,100 +1119,147 @@ export interface Observable extends Emitter {
 	 *
 	 * It is also possible to change the returned value:
 	 *
-	 *		foo.on( 'method', ( evt ) => {
-	 *			evt.return = 'Foo!';
-	 *		} );
+	 * ```ts
+	 * foo.on( 'method', ( evt ) => {
+	 * 	evt.return = 'Foo!';
+	 * } );
 	 *
-	 *		foo.method(); // -> 'Foo'
+	 * foo.method(); // -> 'Foo'
+	 * ```
 	 *
 	 * Finally, it is possible to access and modify the arguments the method is called with:
 	 *
-	 *		method( a, b ) {
-	 *			console.log( `${ a }, ${ b }`  );
-	 *		}
+	 * ```ts
+	 * method( a, b ) {
+	 * 	console.log( `${ a }, ${ b }`  );
+	 * }
 	 *
-	 *		// ...
+	 * // ...
 	 *
-	 *		foo.on( 'method', ( evt, args ) => {
-	 *			args[ 0 ] = 3;
+	 * foo.on( 'method', ( evt, args ) => {
+	 * 	args[ 0 ] = 3;
 	 *
-	 *			console.log( args[ 1 ] ); // -> 2
-	 *		}, { priority: 'high' } );
+	 * 	console.log( args[ 1 ] ); // -> 2
+	 * }, { priority: 'high' } );
 	 *
-	 *		foo.method( 1, 2 ); // -> '3, 2'
+	 * foo.method( 1, 2 ); // -> '3, 2'
+	 * ```
 	 *
-	 * @method #decorate
-	 * @param {String} methodName Name of the method to decorate.
+	 * @param methodName Name of the method to decorate.
 	 */
 	decorate( methodName: keyof this & string ): void;
+}
 
-	/**
-	 * Fired when a property changed value.
-	 *
-	 *		observable.set( 'prop', 1 );
-	 *
-	 *		observable.on( 'change:prop', ( evt, propertyName, newValue, oldValue ) => {
-	 *			console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
-	 *		} );
-	 *
-	 *		observable.prop = 2; // -> 'prop has changed from 1 to 2'
-	 *
-	 * @event change:{property}
-	 * @param {String} name The property name.
-	 * @param {*} value The new property value.
-	 * @param {*} oldValue The previous property value.
-	 */
-
-	/**
-	 * Fired when a property value is going to be set but is not set yet (before the `change` event is fired).
-	 *
-	 * You can control the final value of the property by using
-	 * the {@link module:utils/eventinfo~EventInfo#return event's `return` property}.
-	 *
-	 *		observable.set( 'prop', 1 );
-	 *
-	 *		observable.on( 'set:prop', ( evt, propertyName, newValue, oldValue ) => {
-	 *			console.log( `Value is going to be changed from ${ oldValue } to ${ newValue }` );
-	 *			console.log( `Current property value is ${ observable[ propertyName ] }` );
-	 *
-	 *			// Let's override the value.
-	 *			evt.return = 3;
-	 *		} );
-	 *
-	 *		observable.on( 'change:prop', ( evt, propertyName, newValue, oldValue ) => {
-	 *			console.log( `Value has changed from ${ oldValue } to ${ newValue }` );
-	 *		} );
-	 *
-	 *		observable.prop = 2; // -> 'Value is going to be changed from 1 to 2'
-	 *		                     // -> 'Current property value is 1'
-	 *		                     // -> 'Value has changed from 1 to 3'
-	 *
-	 * **Note:** The event is fired even when the new value is the same as the old value.
-	 *
-	 * @event set:{property}
-	 * @param {String} name The property name.
-	 * @param {*} value The new property value.
-	 * @param {*} oldValue The previous property value.
-	 */
-
-	/** @internal */
+interface ObservableInternal extends Observable {
 	[ observablePropertiesSymbol ]?: Map<string, unknown>;
 
-	/** @internal */
-	[ decoratedMethods ]?: string[];
+	[ decoratedMethods ]?: Array<string>;
 
-	/** @internal */
 	[ boundPropertiesSymbol ]?: Map<string, Binding>;
 
-	/** @internal */
 	[ boundObservablesSymbol]?: Map<Observable, Record<string, Set<Binding>>>;
 }
 
+/**
+ * Fired when a property changed value.
+ *
+ * ```ts
+ * observable.set( 'prop', 1 );
+ *
+ * observable.on<ObservableChangeEvent<number>>( 'change:prop', ( evt, propertyName, newValue, oldValue ) => {
+ * 	console.log( `${ propertyName } has changed from ${ oldValue } to ${ newValue }` );
+ * } );
+ *
+ * observable.prop = 2; // -> 'prop has changed from 1 to 2'
+ * ```
+ *
+ * @eventName change:{property}
+ * @param {String} name The property name.
+ * @param {*} value The new property value.
+ * @param {*} oldValue The previous property value.
+ */
+export type ObservableChangeEvent<TValue = any> = {
+	name: 'change' | `change:${ string }`;
+	args: [ name: string, value: TValue, oldValue: TValue ];
+};
+
+/**
+ * Fired when a property value is going to be set but is not set yet (before the `change` event is fired).
+ *
+ * You can control the final value of the property by using
+ * the {@link module:utils/eventinfo~EventInfo#return event's `return` property}.
+ *
+ * ```ts
+ * observable.set( 'prop', 1 );
+ *
+ * observable.on<ObservableSetEvent<number>>( 'set:prop', ( evt, propertyName, newValue, oldValue ) => {
+ * 	console.log( `Value is going to be changed from ${ oldValue } to ${ newValue }` );
+ * 	console.log( `Current property value is ${ observable[ propertyName ] }` );
+ *
+ * 	// Let's override the value.
+ * 	evt.return = 3;
+ * } );
+ *
+ * observable.on<ObservableChangeEvent<number>>( 'change:prop', ( evt, propertyName, newValue, oldValue ) => {
+ * 	console.log( `Value has changed from ${ oldValue } to ${ newValue }` );
+ * } );
+ *
+ * observable.prop = 2; // -> 'Value is going to be changed from 1 to 2'
+ *                      // -> 'Current property value is 1'
+ *                      // -> 'Value has changed from 1 to 3'
+ * ```
+ *
+ * **Note:** The event is fired even when the new value is the same as the old value.
+ *
+ * @eventName set:{property}
+ * @param {String} name The property name.
+ * @param {*} value The new property value.
+ * @param {*} oldValue The previous property value.
+ */
+export type ObservableSetEvent<TValue = any> = {
+	name: 'set' | `set:${ string }`;
+	args: [ name: string, value: TValue, oldValue: TValue ];
+	return: TValue;
+};
+
+/**
+ * Utility type that creates an event describing type from decorated method.
+ *
+ * ```ts
+ * class Foo extends ObservableMixin() {
+ * 	constructor() {
+ * 		super();
+ * 		this.decorate( 'method' );
+ * 	}
+ *
+ * 	method( a: number, b: number ): number {
+ * 		return a + b;
+ * 	}
+ * }
+ *
+ * type FooMethodEvent = DecoratedMethodEvent<Foo, 'method'>;
+ *
+ * const foo = new Foo();
+ *
+ * foo.on<FooMethodEvent>( 'method', ( evt, [ a, b ] ) => {
+ * 	// `a` and `b` are inferred as numbers.
+ * } )
+ * ```
+ */
+export type DecoratedMethodEvent<
+	TObservable extends Observable & { [ N in TName ]: ( ...args: Array<any> ) => any },
+	TName extends keyof TObservable & string
+> = {
+	name: TName;
+	args: [ Parameters<TObservable[ TName ]> ];
+	return: ReturnType<TObservable[ TName ]>;
+};
+
 interface SingleBindChain<TKey extends string, TVal> {
 	toMany<O extends Observable, K extends keyof O>(
-		observables: readonly O[],
+		observables: ReadonlyArray<O>,
 		key: K,
-		callback: ( ...values: O[ K ][] ) => TVal
+		callback: ( ...values: Array<O[ K ]> ) => TVal
 	): void;
 
 	to<O extends Observable & { [ P in TKey ]: TVal }>(
@@ -1077,5 +1371,5 @@ interface DualBindChain<TVal1, TVal2> {
 }
 
 interface MultiBindChain {
-	to<O extends Observable>( observable: O, ...properties: ( keyof O )[] ): void;
+	to<O extends Observable>( observable: O, ...properties: Array<keyof O> ): void;
 }

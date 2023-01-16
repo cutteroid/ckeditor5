@@ -45,6 +45,7 @@ export function isLinkElement( node ) {
  */
 export function createLinkElement( href, { writer } ) {
 	// Priority 5 - https://github.com/ckeditor/ckeditor5-link/issues/121.
+    href = href.trim();
 	const linkElement = writer.createAttributeElement( 'a', { href }, { priority: 5 } );
 	writer.setCustomProperty( 'link', true, linkElement );
 
@@ -165,13 +166,23 @@ export function isEmail( value ) {
  *
  * @params {String} link
  * @params {String} defaultProtocol
- * @returns {Boolean}
+ * @returns {String}
  */
 export function addLinkProtocolIfApplicable( link, defaultProtocol ) {
 	const protocol = isEmail( link ) ? 'mailto:' : defaultProtocol;
-	const isProtocolNeeded = !!protocol && !PROTOCOL_REG_EXP.test( link );
+	const isProtocolNeeded = !!protocol && !linkHasProtocol( link );
 
 	return link && isProtocolNeeded ? protocol + link : link;
+}
+
+/**
+ * Checks if protocol is already included in the link.
+ *
+ * @param {String} link
+ * @returns {Boolean}
+ */
+export function linkHasProtocol( link ) {
+	return PROTOCOL_REG_EXP.test( link );
 }
 
 /**

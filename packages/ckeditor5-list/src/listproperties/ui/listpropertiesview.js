@@ -13,11 +13,13 @@ import {
 	FocusCycler,
 	SwitchButtonView,
 	LabeledFieldView,
-	createLabeledInputNumber
+	createLabeledInputNumber,
+	addKeyboardHandlingForGrid
 } from 'ckeditor5/src/ui';
 import {
 	FocusTracker,
-	KeystrokeHandler
+	KeystrokeHandler,
+	global
 } from 'ckeditor5/src/utils';
 
 import CollapsibleView from './collapsibleview';
@@ -178,19 +180,32 @@ export default class ListPropertiesView extends View {
 		super.render();
 
 		if ( this.stylesView ) {
-			for ( const styleButtonView of this.stylesView.children ) {
-				// Register the view as focusable.
-				this.focusables.add( styleButtonView );
-
-				// Register the view in the focus tracker.
-				this.focusTracker.add( styleButtonView.element );
-			}
+			this.focusables.add( this.stylesView );
+			this.focusTracker.add( this.stylesView.element );
 
 			// Register the collapsible toggle button to the focus system.
 			if ( this.startIndexFieldView || this.reversedSwitchButtonView ) {
 				this.focusables.add( this.children.last.buttonView );
 				this.focusTracker.add( this.children.last.buttonView.element );
 			}
+
+			for ( const item of this.stylesView.children ) {
+				this.stylesView.focusTracker.add( item.element );
+			}
+
+			addKeyboardHandlingForGrid( {
+				keystrokeHandler: this.stylesView.keystrokes,
+				focusTracker: this.stylesView.focusTracker,
+				gridItems: this.stylesView.children,
+				// Note: The styles view has a different number of columns depending on whether the other properties
+				// are enabled in the dropdown or not (https://github.com/ckeditor/ckeditor5/issues/12340)
+				numberOfColumns: () => global.window
+					.getComputedStyle( this.stylesView.element )
+					.getPropertyValue( 'grid-template-columns' )
+					.split( ' ' )
+					.length,
+				uiLanguageDirection: this.locale && this.locale.uiLanguageDirection
+			} );
 		}
 
 		if ( this.startIndexFieldView ) {
@@ -276,6 +291,17 @@ export default class ListPropertiesView extends View {
 
 		stylesView.children.delegate( 'execute' ).to( this );
 
+		stylesView.focus = function() {
+			this.children.first.focus();
+		};
+
+		stylesView.focusTracker = new FocusTracker();
+		stylesView.keystrokes = new KeystrokeHandler();
+
+		stylesView.render();
+
+		stylesView.keystrokes.listenTo( stylesView.element );
+
 		return stylesView;
 	}
 
@@ -343,7 +369,7 @@ export default class ListPropertiesView extends View {
 		} );
 
 		startIndexFieldView.fieldView.set( {
-			min: 1,
+			min: 0,
 			step: 1,
 			value: 1,
 			inputMode: 'numeric'
