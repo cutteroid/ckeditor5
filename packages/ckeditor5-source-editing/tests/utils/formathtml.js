@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -153,8 +153,7 @@ describe( 'SourceEditing utils', () => {
 				'    </h4>\n' +
 				'    <hr>\n' +
 				'    <address>\n' +
-				'        <a href="mailto:john@example.com">john@example.com</a>\n' +
-				'        <br>\n' +
+				'        <a href="mailto:john@example.com">john@example.com</a><br>\n' +
 				'        <a href="tel:+13105551234">(310) 555-1234</a>\n' +
 				'    </address>\n' +
 				'</aside>';
@@ -235,12 +234,10 @@ describe( 'SourceEditing utils', () => {
 
 			// This is not pretty but at least it does not crash.
 			const sourceFormatted =
-			'<p>\n' +
-			'    <iframe>\n' +
-			'    <br>\n' +
-			'</br>\n' +
-			'</body></iframe>\n' +
-			'</p>';
+				'<p>\n' +
+				'    <iframe><br>\n' +
+				'    </br></body></iframe>\n' +
+				'</p>';
 
 			expect( formatHtml( source ) ).to.equal( sourceFormatted );
 		} );

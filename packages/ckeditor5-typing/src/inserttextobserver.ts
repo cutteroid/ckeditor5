@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -12,8 +12,9 @@ import { env, EventInfo } from '@ckeditor/ckeditor5-utils';
 import {
 	DomEventData,
 	Observer,
+	FocusObserver,
 	type View,
-	type ViewDocumentCompositionEvent,
+	type ViewDocumentCompositionEndEvent,
 	type ViewDocumentInputEvent,
 	type ViewDocumentSelection,
 	type ViewRange,
@@ -36,15 +37,21 @@ const TYPING_INPUT_TYPES = [
 
 /**
  * Text insertion observer introduces the {@link module:engine/view/document~Document#event:insertText} event.
- *
- * @extends module:engine/view/observer/observer~Observer
  */
 export default class InsertTextObserver extends Observer {
+	/**
+	 * Instance of the focus observer. Insert text observer calls
+	 * {@link module:engine/view/observer/focusobserver~FocusObserver#flush} to mark the latest focus change as complete.
+	 */
+	public readonly focusObserver: FocusObserver;
+
 	/**
 	 * @inheritDoc
 	 */
 	constructor( view: View ) {
 		super( view );
+
+		this.focusObserver = view.getObserver( FocusObserver );
 
 		// On Android composition events should immediately be applied to the model. Rendering is not disabled.
 		// On non-Android the model is updated only on composition end.
@@ -66,6 +73,10 @@ export default class InsertTextObserver extends Observer {
 				return;
 			}
 
+			// Mark the latest focus change as complete (we are typing in editable after the focus
+			// so the selection is in the focused element).
+			this.focusObserver.flush();
+
 			const eventInfo = new EventInfo( viewDocument, 'insertText' );
 
 			viewDocument.fire( eventInfo, new DomEventData( view, domEvent, {
@@ -81,7 +92,7 @@ export default class InsertTextObserver extends Observer {
 		} );
 
 		// Note: The priority must be lower than the CompositionObserver handler to call it after the renderer is unblocked.
-		viewDocument.on<ViewDocumentCompositionEvent>( 'compositionend', ( evt, { data, domEvent } ) => {
+		viewDocument.on<ViewDocumentCompositionEndEvent>( 'compositionend', ( evt, { data, domEvent } ) => {
 			// On Android composition events are immediately applied to the model.
 			// On non-Android the model is updated only on composition end.
 			// On Android we can't rely on composition start/end to update model.
@@ -94,7 +105,7 @@ export default class InsertTextObserver extends Observer {
 				return;
 			}
 
-			// @if CK_DEBUG_TYPING // if ( window.logCKETyping ) {
+			// @if CK_DEBUG_TYPING // if ( ( window as any ).logCKETyping ) {
 			// @if CK_DEBUG_TYPING // 	console.log( `%c[InsertTextObserver]%c Fire insertText event, text: ${ JSON.stringify( data ) }`,
 			// @if CK_DEBUG_TYPING // 		'font-weight: bold; color: green;', ''
 			// @if CK_DEBUG_TYPING // 	);
@@ -127,6 +138,11 @@ export default class InsertTextObserver extends Observer {
 	 * @inheritDoc
 	 */
 	public observe(): void {}
+
+	/**
+	 * @inheritDoc
+	 */
+	public stopObserving(): void {}
 }
 
 /**
@@ -139,12 +155,8 @@ export default class InsertTextObserver extends Observer {
  *
  * **Note**: This event is fired by the {@link module:typing/inserttextobserver~InsertTextObserver input feature}.
  *
- * @event module:engine/view/document~Document#event:insertText
- * @param {module:engine/view/observer/domeventdata~DomEventData} data
- * @param {String} data.text The text to be inserted.
- * @param {module:engine/view/selection~Selection} [data.selection] The selection into which the text should be inserted.
- * If not specified, the insertion should occur at the current view selection.
- * @param {module:engine/view/range~Range} [data.resultRange] The range that view selection should be set to after insertion.
+ * @eventName module:engine/view/document~Document#insertText
+ * @param data The event data.
  */
 export type ViewDocumentInsertTextEvent = {
 	name: 'insertText';
@@ -152,7 +164,20 @@ export type ViewDocumentInsertTextEvent = {
 };
 
 export interface InsertTextEventData extends DomEventData {
+
+	/**
+	 *  The text to be inserted.
+	 */
 	text: string;
+
+	/**
+	 * The selection into which the text should be inserted.
+	 * If not specified, the insertion should occur at the current view selection.
+	 */
 	selection: ViewSelection | ViewDocumentSelection;
+
+	/**
+	 * The range that view selection should be set to after insertion.
+	 */
 	resultRange?: ViewRange;
 }

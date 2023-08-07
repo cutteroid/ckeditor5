@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -51,7 +51,7 @@ describe( 'InsertTextObserver', () => {
 	} );
 
 	it( 'should not work if the observer is disabled (beforeinput)', () => {
-		view.getObserver( InsertTextObserver ).isEnabled = false;
+		view.getObserver( InsertTextObserver )._isEnabled = false;
 
 		fireBeforeInputDomEvent( domRoot, {
 			inputType: 'insertParagraph'
@@ -61,7 +61,7 @@ describe( 'InsertTextObserver', () => {
 	} );
 
 	it( 'should not work if the observer is disabled (composition)', () => {
-		view.getObserver( InsertTextObserver ).isEnabled = false;
+		view.getObserver( InsertTextObserver )._isEnabled = false;
 
 		fireCompositionEndDomEvent( domRoot, {
 			data: 'foo'
@@ -199,6 +199,31 @@ describe( 'InsertTextObserver', () => {
 		sinon.assert.notCalled( insertTextEventSpy );
 	} );
 
+	// See https://github.com/ckeditor/ckeditor5/issues/14569.
+	it( 'should flush focus observer to enable selection rendering', () => {
+		viewSetData( view, '<p>fo{}o</p>' );
+
+		const flushSpy = testUtils.sinon.spy( view.getObserver( InsertTextObserver ).focusObserver, 'flush' );
+
+		const viewRange = view.document.selection.getFirstRange();
+		const domRange = view.domConverter.viewRangeToDom( viewRange );
+		const viewSelection = view.createSelection( viewRange );
+
+		fireBeforeInputDomEvent( domRoot, {
+			inputType: 'insertText',
+			ranges: [ domRange ],
+			data: 'bar'
+		} );
+
+		sinon.assert.calledOnce( insertTextEventSpy );
+		sinon.assert.calledOnce( flushSpy );
+
+		const firstCallArgs = insertTextEventSpy.firstCall.args[ 1 ];
+
+		expect( firstCallArgs.text ).to.equal( 'bar' );
+		expect( firstCallArgs.selection.isEqual( viewSelection ) ).to.be.true;
+	} );
+
 	describe( 'in Android environment', () => {
 		let view, viewDocument, insertTextEventSpy;
 		let domRoot;
@@ -242,5 +267,11 @@ describe( 'InsertTextObserver', () => {
 			expect( firstCallArgs.text ).to.equal( 'bar' );
 			expect( firstCallArgs.selection.isEqual( viewSelection ) ).to.be.true;
 		} );
+	} );
+
+	it( 'should implement empty #stopObserving() method', () => {
+		expect( () => {
+			view.getObserver( InsertTextObserver ).stopObserving();
+		} ).to.not.throw();
 	} );
 } );

@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -44,6 +44,15 @@ describe( 'InsertParagraphCommand', () => {
 			expect( getData( model ) ).to.equal( '<paragraph>[]</paragraph><heading1>foo</heading1>' );
 		} );
 
+		it( 'should not execute when selection is in non-editable place', () => {
+			setData( model, '<heading1>foo[]</heading1>' );
+
+			model.document.isReadOnly = true;
+			command.execute( { position: model.createPositionBefore( root.getChild( 0 ) ) } );
+
+			expect( getData( model ) ).to.equal( '<heading1>foo[]</heading1>' );
+		} );
+
 		it( 'should split ancestors down to a limit where a paragraph is allowed', () => {
 			setData( model, '<allowP><disallowP>foo</disallowP></allowP>' );
 
@@ -58,6 +67,73 @@ describe( 'InsertParagraphCommand', () => {
 					'<paragraph>[]</paragraph>' +
 					'<disallowP>o</disallowP>' +
 				'</allowP>'
+			);
+		} );
+
+		it( 'should insert paragraph when position is at the end of line', () => {
+			setData( model, '<paragraph>foo[]</paragraph>' );
+
+			command.execute( {
+				position: model.document.selection.getFirstPosition()
+			} );
+
+			expect( getData( model ) ).to.equal(
+				'<paragraph>foo</paragraph>' +
+				'<paragraph>[]</paragraph>'
+			);
+		} );
+
+		it( 'should insert paragraph when position is at the end of line with an inline widget', () => {
+			schema.register( 'inlineWidget', { inheritAllFrom: '$inlineObject' } );
+			setData( model, '<paragraph><inlineWidget></inlineWidget>[]</paragraph>' );
+
+			command.execute( {
+				position: model.document.selection.getFirstPosition()
+			} );
+
+			expect( getData( model ) ).to.equal(
+				'<paragraph><inlineWidget></inlineWidget></paragraph>' +
+				'<paragraph>[]</paragraph>'
+			);
+		} );
+
+		it( 'should insert paragraph when position is at the start of line', () => {
+			setData( model, '<paragraph>[]foo</paragraph>' );
+
+			command.execute( {
+				position: model.document.selection.getLastPosition()
+			} );
+
+			expect( getData( model ) ).to.equal(
+				'<paragraph>[]</paragraph>' +
+				'<paragraph>foo</paragraph>'
+			);
+		} );
+
+		it( 'should insert paragraph when position is at the start of line with an inline widget', () => {
+			schema.register( 'inlineWidget', { inheritAllFrom: '$inlineObject' } );
+			setData( model, '<paragraph>[]<inlineWidget></inlineWidget></paragraph>' );
+
+			command.execute( {
+				position: model.document.selection.getLastPosition()
+			} );
+
+			expect( getData( model ) ).to.equal(
+				'<paragraph>[]</paragraph>' +
+				'<paragraph><inlineWidget></inlineWidget></paragraph>'
+			);
+		} );
+
+		it( 'should insert paragraph bellow when paragraph is empty', () => {
+			setData( model, '<paragraph>[]</paragraph>' );
+
+			command.execute( {
+				position: model.document.selection.getLastPosition()
+			} );
+
+			expect( getData( model ) ).to.equal(
+				'<paragraph></paragraph>' +
+				'<paragraph>[]</paragraph>'
 			);
 		} );
 

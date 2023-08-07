@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -167,6 +167,15 @@ describe( 'view test utils', () => {
 			}, b );
 
 			expect( stringify( p ) ).to.equal( '<p bar="taz" baz="qux" class="short wide"><b foo="bar">foobar</b></p>' );
+		} );
+
+		it( 'should write elements with attributes which values include double quotes', () => {
+			const text = new Text( viewDocument, 'foobar' );
+			const p = new Element( viewDocument, 'p', {
+				style: 'font-family: Calibri, "Times New Roman", sans-serif'
+			}, text );
+
+			expect( stringify( p ) ).to.equal( '<p style="font-family:Calibri, &quot;Times New Roman&quot;, sans-serif">foobar</p>' );
 		} );
 
 		it( 'should write selection ranges inside elements', () => {

@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -10,12 +10,15 @@
 export { default as env } from './env';
 export { default as diff, type DiffResult } from './diff';
 export { default as fastDiff } from './fastdiff';
+export { default as diffToChanges } from './difftochanges';
 
 export { default as mix } from './mix';
 
+export type { Constructor, Mixed } from './mix';
+
 export {
 	default as EmitterMixin,
-	Emitter,
+	type Emitter,
 	type BaseEvent,
 	type CallbackOptions,
 	type EmitterMixinDelegateChain,
@@ -29,7 +32,7 @@ export { default as EventInfo } from './eventinfo';
 
 export {
 	default as ObservableMixin,
-	Observable,
+	type Observable,
 	type DecoratedMethodEvent,
 	type ObservableChangeEvent,
 	type ObservableSetEvent
@@ -44,9 +47,12 @@ export { default as compareArrays } from './comparearrays';
 export { default as createElement } from './dom/createelement';
 export { default as Config } from './config';
 export { default as isIterable } from './isiterable';
-export { default as DomEmitterMixin, DomEmitter } from './dom/emittermixin';
+export { default as DomEmitterMixin, type DomEmitter } from './dom/emittermixin';
+export { default as findClosestScrollableAncestor } from './dom/findclosestscrollableancestor';
 export { default as global } from './dom/global';
 export { default as getAncestors } from './dom/getancestors';
+export { default as getElementsIntersectionRect } from './dom/getelementsintersectionrect';
+export { default as getScrollableAncestors } from './dom/getscrollableancestors';
 export { default as getDataFromElement } from './dom/getdatafromelement';
 export { default as isText } from './dom/istext';
 export { default as Rect, type RectSource } from './dom/rect';
@@ -58,14 +64,15 @@ export { default as insertAt } from './dom/insertat';
 export { default as isComment } from './dom/iscomment';
 export { default as isNode } from './dom/isnode';
 export { default as isRange } from './dom/isrange';
+export { default as isValidAttributeName } from './dom/isvalidattributename';
 export { default as isVisible } from './dom/isvisible';
-export { getOptimalPosition, type Options as PositionOptions, type PositioningFunction } from './dom/position';
+export { getOptimalPosition, type Options as PositionOptions, type PositioningFunction, type Position } from './dom/position';
 export { default as remove } from './dom/remove';
 export * from './dom/scroll';
 
 export * from './keyboard';
 export * from './language';
-export { default as Locale, LocaleTranslate } from './locale';
+export { default as Locale, type LocaleTranslate } from './locale';
 export {
 	default as Collection,
 	type CollectionAddEvent,
@@ -82,6 +89,8 @@ export { default as insertToPriorityArray } from './inserttopriorityarray';
 export { default as spliceArray } from './splicearray';
 
 export { default as uid } from './uid';
+export { default as delay, type DelayedFunc } from './delay';
+export { default as verifyLicense } from './verifylicense';
 export * from './unicode';
 
-export { default as version } from './version';
+export { default as version, releaseDate } from './version';

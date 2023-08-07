@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -9,6 +9,7 @@ import ViewCollection from '../../src/viewcollection';
 import DropdownPanelView from '../../src/dropdown/dropdownpanelview';
 import View from '../../src/view';
 import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils';
+import { LabeledFieldView, createLabeledInputText } from '@ckeditor/ckeditor5-ui';
 
 describe( 'DropdownPanelView', () => {
 	let view, locale;
@@ -37,6 +38,7 @@ describe( 'DropdownPanelView', () => {
 			expect( view.element.classList.contains( 'ck' ) ).to.be.true;
 			expect( view.element.classList.contains( 'ck-reset' ) ).to.be.true;
 			expect( view.element.classList.contains( 'ck-dropdown__panel' ) ).to.be.true;
+			expect( view.element.getAttribute( 'tabindex' ) ).to.equal( '-1' );
 		} );
 
 		describe( 'template bindings', () => {
@@ -69,6 +71,21 @@ describe( 'DropdownPanelView', () => {
 
 						view.element.dispatchEvent( event );
 						sinon.assert.calledOnce( spy );
+					} );
+
+					it( 'does not get preventDefault called for the input field', () => {
+						const labeledInput = new LabeledFieldView( { t: () => {} }, createLabeledInputText );
+
+						view.children.add( labeledInput );
+
+						const event = new Event( 'selectstart', {
+							bubbles: true,
+							cancelable: true
+						} );
+						const spy = sinon.spy( event, 'preventDefault' );
+
+						labeledInput.fieldView.element.dispatchEvent( event );
+						sinon.assert.notCalled( spy );
 					} );
 				} );
 			} );

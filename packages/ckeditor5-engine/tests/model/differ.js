@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -15,6 +15,7 @@ import RenameOperation from '../../src/model/operation/renameoperation';
 import AttributeOperation from '../../src/model/operation/attributeoperation';
 import SplitOperation from '../../src/model/operation/splitoperation';
 import MergeOperation from '../../src/model/operation/mergeoperation';
+import RootOperation from '../../src/model/operation/rootoperation';
 
 describe( 'Differ', () => {
 	let doc, differ, root, model;
@@ -37,7 +38,6 @@ describe( 'Differ', () => {
 	} );
 
 	describe( 'insert', () => {
-		// Simple.
 		it( 'an element', () => {
 			const position = new Position( root, [ 1 ] );
 
@@ -265,6 +265,18 @@ describe( 'Differ', () => {
 					},
 					{ type: 'insert', name: '$text', length: 2, position }
 				] );
+			} );
+		} );
+
+		it( 'inside non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			const position = new Position( root, [ 0 ] );
+
+			model.change( () => {
+				insert( new Element( 'imageBlock' ), position );
+
+				expectChanges( [] );
 			} );
 		} );
 	} );
@@ -600,6 +612,18 @@ describe( 'Differ', () => {
 				] );
 			} );
 		} );
+
+		it( 'from non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			const position = new Position( root, [ 0 ] );
+
+			model.change( () => {
+				remove( position, 1 );
+
+				expectChanges( [] );
+			} );
+		} );
 	} );
 
 	// The only main difference between remove operation and move operation is target position.
@@ -692,6 +716,54 @@ describe( 'Differ', () => {
 				expectChanges( [] );
 			} );
 		} );
+
+		it( 'inside non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			const sourcePosition = new Position( root, [ 0 ] );
+			const targetPosition = new Position( root, [ 2 ] );
+
+			model.change( () => {
+				move( sourcePosition, 1, targetPosition );
+
+				expectChanges( [] );
+			} );
+		} );
+
+		it( 'into non-loaded root - partially not buffered', () => {
+			const newRoot = model.document.createRoot( '$root', 'new' );
+			newRoot._isLoaded = false;
+
+			const sourcePosition = new Position( root, [ 0 ] );
+			const targetPosition = new Position( newRoot, [ 0 ] );
+
+			model.change( () => {
+				move( sourcePosition, 1, targetPosition );
+
+				expectChanges( [
+					// Only buffer "remove" from the loaded root.
+					{ type: 'remove', name: 'paragraph', length: 1, position: new Position( root, [ 0 ] ) }
+				] );
+			} );
+		} );
+
+		it( 'from non-loaded root - partially not buffered', () => {
+			const newRoot = model.document.createRoot( '$root', 'new' );
+
+			root._isLoaded = false;
+
+			const sourcePosition = new Position( root, [ 0 ] );
+			const targetPosition = new Position( newRoot, [ 0 ] );
+
+			model.change( () => {
+				move( sourcePosition, 1, targetPosition );
+
+				expectChanges( [
+					// Only buffer "insert" to the loaded root.
+					{ type: 'insert', name: 'paragraph', length: 1, position: new Position( newRoot, [ 0 ] ) }
+				] );
+			} );
+		} );
 	} );
 
 	describe( 'rename', () => {
@@ -751,6 +823,16 @@ describe( 'Differ', () => {
 
 				expect( markersToRefresh ).to.deep.equal( markersToRemove );
 				expect( markersToRefresh ).to.deep.equal( markersToAdd );
+			} );
+		} );
+
+		it( 'inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			model.change( () => {
+				rename( root.getChild( 1 ), 'listItem' );
+
+				expectChanges( [] );
 			} );
 		} );
 	} );
@@ -1115,6 +1197,23 @@ describe( 'Differ', () => {
 			} );
 		} );
 
+		it( 'on a node inside an inserted element', () => {
+			const position = new Position( root, [ 0 ] );
+
+			model.change( () => {
+				const p = new Element( 'paragraph', null, new Text( 'xxx' ) );
+				insert( p, position );
+
+				const range = new Range( Position._createAt( p, 1 ), Position._createAt( p, 2 ) );
+
+				attribute( range, attributeKey, attributeOldValue, attributeNewValue );
+
+				expectChanges( [
+					{ type: 'insert', name: 'paragraph', length: 1, position }
+				] );
+			} );
+		} );
+
 		it( 'on some inserted nodes and old nodes', () => {
 			const position = new Position( root, [ 0, 1 ] );
 
@@ -1387,6 +1486,18 @@ describe( 'Differ', () => {
 				] );
 			} );
 		} );
+
+		it( 'inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			const range = new Range( Position._createAt( root, 0 ), Position._createAt( root, 1 ) );
+
+			model.change( () => {
+				attribute( range, attributeKey, attributeOldValue, attributeNewValue );
+
+				expectChanges( [] );
+			} );
+		} );
 	} );
 
 	describe( 'split', () => {
@@ -1454,6 +1565,18 @@ describe( 'Differ', () => {
 				], true );
 			} );
 		} );
+
+		it( 'inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			const position = new Position( root, [ 0, 2 ] );
+
+			model.change( () => {
+				split( position );
+
+				expectChanges( [] );
+			} );
+		} );
 	} );
 
 	describe( 'merge', () => {
@@ -1518,6 +1641,16 @@ describe( 'Differ', () => {
 					{ type: 'insert', name: '$text', length: 3, position: new Position( root, [ 0, 3 ] ) },
 					{ type: 'remove', name: 'paragraph', length: 1, position: new Position( root, [ 1 ] ) }
 				], true );
+			} );
+		} );
+
+		it( 'inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			model.change( () => {
+				merge( new Position( root, [ 1, 0 ] ), new Position( root, [ 0, 3 ] ) );
+
+				expectChanges( [] );
 			} );
 		} );
 	} );
@@ -1778,6 +1911,540 @@ describe( 'Differ', () => {
 				}
 			] );
 		} );
+
+		it( 'add marker inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			differ.bufferMarkerChange( 'name', { range: null, affectsData: true }, { range, affectsData: true } );
+
+			expect( differ.getMarkersToRemove() ).to.deep.equal( [] );
+			expect( differ.getMarkersToAdd() ).to.deep.equal( [] );
+			expect( differ.getChangedMarkers() ).to.deep.equal( [] );
+		} );
+
+		it( 'remove marker inside a non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			differ.bufferMarkerChange( 'name', { range, affectsData: true }, { range: null, affectsData: true } );
+
+			expect( differ.getMarkersToRemove() ).to.deep.equal( [] );
+			expect( differ.getMarkersToAdd() ).to.deep.equal( [] );
+			expect( differ.getChangedMarkers() ).to.deep.equal( [] );
+		} );
+
+		it( 'move marker from a loaded to a non-loaded root - partially not buffered', () => {
+			const newRoot = model.document.createRoot( '$root', 'new' );
+			newRoot._isLoaded = false;
+
+			const newRange = new Range( Position._createAt( newRoot, 0 ), Position._createAt( newRoot, 0 ) );
+
+			differ.bufferMarkerChange( 'name', { range, affectsData: true }, { range: newRange, affectsData: true } );
+
+			expect( differ.getMarkersToRemove() ).to.deep.equal( [
+				{ name: 'name', range }
+			] );
+
+			expect( differ.getMarkersToAdd() ).to.deep.equal( [] );
+
+			expect( differ.getChangedMarkers() ).to.deep.equal( [
+				{
+					name: 'name',
+					data: {
+						oldRange: range,
+						newRange: null
+					}
+				}
+			] );
+		} );
+
+		it( 'move marker from a non-loaded to a loaded root - partially not buffered', () => {
+			const newRoot = model.document.createRoot( '$root', 'new' );
+			const newRange = new Range( Position._createAt( newRoot, 0 ), Position._createAt( newRoot, 0 ) );
+
+			root._isLoaded = false;
+
+			differ.bufferMarkerChange( 'name', { range, affectsData: true }, { range: newRange, affectsData: true } );
+
+			expect( differ.getMarkersToRemove() ).to.deep.equal( [] );
+
+			expect( differ.getMarkersToAdd() ).to.deep.equal( [
+				{ name: 'name', range: newRange }
+			] );
+
+			expect( differ.getChangedMarkers() ).to.deep.equal( [
+				{
+					name: 'name',
+					data: {
+						oldRange: null,
+						newRange
+					}
+				}
+			] );
+		} );
+	} );
+
+	describe( 'roots', () => {
+		it( 'add root', () => {
+			model.change( writer => {
+				writer.addRoot( 'new' );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'new', state: 'attached' } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'add root operation when root is attached should be ignored by differ', () => {
+			// This may happen during RTC when joining an editing session when a root was added during that editing session.
+			model.change( writer => {
+				const operation = new RootOperation( 'main', '$root', true, model.document, model.document.version );
+
+				writer.batch.addOperation( operation );
+				model.applyOperation( operation );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+			} );
+		} );
+
+		it( 'detach root', () => {
+			model.change( writer => {
+				writer.detachRoot( 'main' );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main', state: 'detached' } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'detach root operation when root is not attached should be ignored by differ', () => {
+			// This may happen during RTC when joining an editing session when a root was detached during that editing session.
+			model.change( writer => {
+				const operation = new RootOperation( 'new', '$root', false, model.document, model.document.version );
+
+				writer.batch.addOperation( operation );
+				model.applyOperation( operation );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+			} );
+		} );
+
+		it( 'add root, then detach root, then add root', () => {
+			model.change( writer => {
+				writer.addRoot( 'new' );
+				writer.detachRoot( 'new' );
+
+				let rootChanges = differ.getChangedRoots();
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+
+				writer.addRoot( 'new' );
+
+				rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'new', state: 'attached' } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'correctly resets after change block', () => {
+			model.change( writer => {
+				writer.addRoot( 'new' );
+			} );
+
+			expect( differ.getChangedRoots().length ).to.equal( 0 );
+			expect( differ.hasDataChanges() ).to.be.false;
+			expect( differ.isEmpty ).to.be.true;
+		} );
+
+		it( 'detach root, then add root, then detach root', () => {
+			// Adding a new root, so we operate on a clean root.
+			// 'main' root contains a paragraph and changes results, which does not contain only root stuff anymore.
+			model.change( writer => {
+				writer.addRoot( 'main2', 'div' ); // Setting different element name to avoid autoparagraphing.
+			} );
+
+			model.change( writer => {
+				writer.detachRoot( 'main2' );
+				writer.addRoot( 'main2' );
+
+				let rootChanges = differ.getChangedRoots();
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+
+				writer.detachRoot( 'main2' );
+
+				rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main2', state: 'detached' } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'multiple roots added and detached', () => {
+			// Add extra root to have more things to remove.
+			model.change( writer => {
+				writer.addRoot( 'main2' );
+			} );
+
+			model.change( writer => {
+				writer.addRoot( 'new' );
+				writer.detachRoot( 'main' );
+				writer.detachRoot( 'main2' );
+				writer.addRoot( 'new2' );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 4 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'new', state: 'attached' } );
+				expect( rootChanges[ 1 ] ).to.deep.equal( { name: 'main', state: 'detached' } );
+				expect( rootChanges[ 2 ] ).to.deep.equal( { name: 'main2', state: 'detached' } );
+				expect( rootChanges[ 3 ] ).to.deep.equal( { name: 'new2', state: 'attached' } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'add attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main', attributes: { key: { oldValue: null, newValue: 'foo' } } } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'remove attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.removeAttribute( 'key', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main', attributes: { key: { oldValue: 'foo', newValue: null } } } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'change attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'bar', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main', attributes: { key: { oldValue: 'foo', newValue: 'bar' } } } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'add then remove attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+				writer.removeAttribute( 'key', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+			} );
+		} );
+
+		it( 'should not delete changedRoots for a custom root', () => {
+			model.change( writer => {
+				const customRoot = writer.addRoot( 'customRoot' );
+				writer.setAttribute( 'key', 'foo', customRoot );
+				writer.removeAttribute( 'key', customRoot );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'add then change attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+				writer.setAttribute( 'key', 'bar', root );
+				writer.setAttribute( 'key', 'baz', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'main', attributes: { key: { oldValue: null, newValue: 'baz' } } } );
+				expect( differ.hasDataChanges() ).to.be.true;
+				expect( differ.isEmpty ).to.be.false;
+			} );
+		} );
+
+		it( 'change then change back attribute', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'bar', root );
+				writer.setAttribute( 'key', 'foo', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+				expect( differ.isEmpty ).to.be.true;
+			} );
+		} );
+
+		it( 'change multiple attributes', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'bar', root );
+				writer.setAttribute( 'abc', 'xyz', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					attributes: {
+						abc: { oldValue: null, newValue: 'xyz' },
+						key: { oldValue: 'foo', newValue: 'bar' }
+					}
+				} );
+			} );
+		} );
+
+		it( 'change attributes on added root', () => {
+			model.change( writer => {
+				const root = writer.addRoot( 'root' );
+
+				writer.setAttribute( 'key', 'foo', root );
+				writer.setAttribute( 'abc', 'xyz', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'root',
+					state: 'attached'
+				} );
+			} );
+		} );
+
+		it( 'change attributes on detached root', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.detachRoot( root );
+
+				writer.removeAttribute( 'key', root );
+				writer.setAttribute( 'abc', 'xyz', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					state: 'detached'
+				} );
+			} );
+		} );
+
+		it( 'change attribute then attach root', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.detachRoot( root );
+			} );
+
+			model.change( writer => {
+				writer.setAttribute( 'foo', 'bar', root );
+				writer.addRoot( 'main' );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					state: 'attached'
+				} );
+			} );
+		} );
+
+		it( 'change attribute then detach root', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'foo', 'bar', root );
+				writer.detachRoot( root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					state: 'detached'
+				} );
+			} );
+		} );
+
+		it( 'change attributes on detached and then re-attached root', () => {
+			const root = model.document.getRoot();
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+			} );
+
+			model.change( writer => {
+				writer.detachRoot( root );
+
+				writer.removeAttribute( 'key', root );
+				writer.setAttribute( 'abc', 'xyz', root );
+
+				writer.addRoot( 'main' );
+
+				writer.setAttribute( 'abc', 'abc', root );
+				writer.setAttribute( 'xxx', 'yyy', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					attributes: {
+						abc: { oldValue: null, newValue: 'abc' },
+						key: { oldValue: 'foo', newValue: null },
+						xxx: { oldValue: null, newValue: 'yyy' }
+					}
+				} );
+			} );
+		} );
+
+		it( 'change attributes on multiple roots', () => {
+			const root = model.document.getRoot();
+			let root2;
+
+			model.change( writer => {
+				writer.setAttribute( 'key', 'foo', root );
+				root2 = writer.addRoot( 'root' );
+			} );
+
+			model.change( writer => {
+				writer.removeAttribute( 'key', root );
+				writer.setAttribute( 'abc', 'xyz', root2 );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 2 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( {
+					name: 'main',
+					attributes: {
+						key: { oldValue: 'foo', newValue: null }
+					}
+				} );
+				expect( rootChanges[ 1 ] ).to.deep.equal( {
+					name: 'root',
+					attributes: {
+						abc: { oldValue: null, newValue: 'xyz' }
+					}
+				} );
+			} );
+		} );
+
+		it( 'detach non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			model.change( writer => {
+				writer.detachRoot( 'main' );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expectChanges( [] );
+
+				expect( rootChanges.length ).to.equal( 0 );
+			} );
+		} );
+
+		it( 'change attributes on non-loaded root - not buffered', () => {
+			root._isLoaded = false;
+
+			model.change( writer => {
+				writer.setAttribute( 'foo', 'foo', root );
+				writer.setAttribute( 'bar', 'bar', root );
+				writer.setAttribute( 'baz', 'baz', root );
+
+				writer.removeAttribute( 'baz', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+			} );
+
+			model.change( writer => {
+				writer.setAttribute( 'foo', 'xyz', root );
+				writer.removeAttribute( 'bar', root );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 0 );
+			} );
+		} );
 	} );
 
 	describe( 'other cases', () => {
@@ -1893,6 +2560,177 @@ describe( 'Differ', () => {
 		} );
 	} );
 
+	describe( '_bufferRootLoad()', () => {
+		let newRoot, rangeA, rangeB;
+
+		beforeEach( () => {
+			model.change( writer => {
+				newRoot = model.document.createRoot( '$root', 'new' );
+				newRoot._isLoaded = false;
+
+				writer.insertElement( 'heading2', newRoot, 0 );
+				writer.insertElement( 'paragraph', newRoot, 1 );
+
+				rangeA = writer.createRangeIn( newRoot.getChild( 0 ) );
+				rangeB = writer.createRangeIn( newRoot );
+				writer.addMarker( 'markerA', { range: rangeA, usingOperation: true } );
+				writer.addMarker( 'markerB', { range: rangeB, usingOperation: true } );
+
+				writer.setAttribute( 'foo', 'foo', newRoot );
+				writer.setAttribute( 'bar', 'bar', newRoot );
+
+				// Marker in a different root.
+				writer.addMarker( 'marker', { range: writer.createRangeIn( root ), usingOperation: true } );
+			} );
+		} );
+
+		it( 'should buffer root state attached', () => {
+			model.change( () => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+
+				const changes = differ.getChangedRoots();
+
+				expect( changes.length ).to.equal( 1 );
+				expect( changes[ 0 ] ).to.deep.equal( { name: 'new', state: 'attached' } );
+			} );
+		} );
+
+		it( 'should buffer all root content as inserted', () => {
+			model.change( () => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+
+				expectChanges( [
+					{ type: 'insert', name: 'heading2', length: 1, position: new Position( newRoot, [ 0 ] ) },
+					{ type: 'insert', name: 'paragraph', length: 1, position: new Position( newRoot, [ 1 ] ) }
+				] );
+			} );
+		} );
+
+		it( 'should buffer all markers inside the root as inserted', () => {
+			model.change( () => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+
+				expect( differ.getMarkersToRemove() ).to.deep.equal( [] );
+
+				expect( differ.getMarkersToAdd() ).to.deep.equal( [
+					{ name: 'markerA', range: rangeA },
+					{ name: 'markerB', range: rangeB }
+				] );
+
+				expect( differ.getChangedMarkers() ).to.deep.equal( [
+					{
+						name: 'markerA',
+						data: {
+							oldRange: null,
+							newRange: rangeA
+						}
+					},
+					{
+						name: 'markerB',
+						data: {
+							oldRange: null,
+							newRange: rangeB
+						}
+					}
+				] );
+			} );
+		} );
+
+		it( 'should not buffer any changes if the root is detached', () => {
+			model.change( writer => {
+				writer.detachRoot( newRoot );
+			} );
+
+			model.change( () => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+
+				expectChanges( [] );
+				expect( differ.getChangedMarkers() ).to.deep.equal( [] );
+				expect( differ.getChangedRoots().length ).to.equal( 0 );
+				expect( differ.hasDataChanges() ).to.be.false;
+			} );
+		} );
+
+		it( 'should not buffer any root-related changes if the root is detached after it is loaded', () => {
+			model.change( writer => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+				writer.detachRoot( newRoot );
+
+				expectChanges( [] );
+				expect( differ.getChangedMarkers() ).to.deep.equal( [] );
+				expect( differ.getChangedRoots().length ).to.equal( 0 );
+
+				// It has changes in graveyard!
+				expect( differ.hasDataChanges() ).to.be.true;
+			} );
+		} );
+
+		it( 'should work well with changes that happens after the root was loaded', () => {
+			model.change( writer => {
+				newRoot._isLoaded = true;
+				differ._bufferRootLoad( newRoot );
+
+				// Remove `paragraph` and add an `imageBlock` before `heading2`.
+				writer.remove( newRoot.getChild( 1 ) );
+				writer.insertElement( 'imageBlock', newRoot, 0 );
+
+				// Do some attribute changes. This should result in NO buffered attribute changes.
+				// We don't return buffered attribute changes if the root was attached!
+				writer.removeAttribute( 'foo', newRoot );
+				writer.setAttribute( 'bar', 'xyz', newRoot );
+				writer.setAttribute( 'baz', 'baz', newRoot );
+
+				// Do some marker changes.
+				// `markerA` was in the `heading2` which was moved, so let's refresh it.
+				const newRangeA = writer.createRangeIn( newRoot.getChild( 1 ) );
+				// `markerB` will be removed.
+				writer.removeMarker( 'markerB' );
+				// `markerC` will be added on the new `imageBlock` and should be [ 0 ] - [ 1 ].
+				const rangeC = writer.createRangeOn( newRoot.getChild( 0 ) );
+				writer.addMarker( 'markerC', { range: rangeC, usingOperation: true } );
+
+				expectChanges( [
+					{ type: 'insert', name: 'imageBlock', length: 1, position: new Position( newRoot, [ 0 ] ) },
+					{ type: 'insert', name: 'heading2', length: 1, position: new Position( newRoot, [ 1 ] ) }
+				] );
+
+				const rootChanges = differ.getChangedRoots();
+
+				expect( rootChanges.length ).to.equal( 1 );
+				expect( rootChanges[ 0 ] ).to.deep.equal( { name: 'new', state: 'attached' } );
+
+				expect( differ.getMarkersToRemove() ).to.deep.equal( [] );
+
+				expect( differ.getMarkersToAdd() ).to.deep.equal( [
+					{ name: 'markerA', range: newRangeA },
+					{ name: 'markerC', range: rangeC }
+				] );
+
+				expect( differ.getChangedMarkers() ).to.deep.equal( [
+					{
+						name: 'markerA',
+						data: {
+							oldRange: null,
+							newRange: newRangeA
+						}
+					},
+					{
+						name: 'markerC',
+						data: {
+							oldRange: null,
+							newRange: rangeC
+						}
+					}
+				] );
+			} );
+		} );
+	} );
+
 	describe( '#_refreshItem()', () => {
 		it( 'should mark given element to be removed and added again', () => {
 			const p = root.getChild( 0 );
@@ -1903,6 +2741,9 @@ describe( 'Differ', () => {
 				{ type: 'remove', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) },
 				{ type: 'insert', name: 'paragraph', length: 1, position: model.createPositionBefore( p ) }
 			], true );
+
+			const refreshedItems = Array.from( differ.getRefreshedItems() );
+			expect( refreshedItems ).to.deep.equal( [ p ] );
 		} );
 
 		it( 'should mark given text proxy to be removed and added again', () => {
@@ -1916,6 +2757,9 @@ describe( 'Differ', () => {
 				{ type: 'remove', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) },
 				{ type: 'insert', name: '$text', length: 3, position: model.createPositionAt( p, 0 ) }
 			], true );
+
+			const refreshedItems = Array.from( differ.getRefreshedItems() );
+			expect( refreshedItems ).to.deep.equal( [ textProxy ] );
 		} );
 
 		it( 'inside a new element', () => {
@@ -1928,6 +2772,9 @@ describe( 'Differ', () => {
 				expectChanges( [
 					{ type: 'insert', name: 'blockQuote', length: 1, position: new Position( root, [ 2 ] ) }
 				] );
+
+				const refreshedItems = Array.from( differ.getRefreshedItems() );
+				expect( refreshedItems ).to.deep.equal( [] );
 			} );
 		} );
 
@@ -2136,7 +2983,7 @@ describe( 'Differ', () => {
 	function expectChanges( expected, includeChangesInGraveyard = false ) {
 		const changes = differ.getChanges( { includeChangesInGraveyard } );
 
-		expect( changes.length ).to.equal( expected.length );
+		expect( changes.length, 'changes length' ).to.equal( expected.length );
 
 		for ( let i = 0; i < expected.length; i++ ) {
 			for ( const key in expected[ i ] ) {

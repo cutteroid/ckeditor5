@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2022, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -1652,6 +1652,16 @@ describe( 'Schema', () => {
 			'both',
 			'<paragraph></paragraph><paragraph>[]</paragraph>'
 		);
+
+		it( 'should return null for a position in graveyard even if there is a paragraph there', () => {
+			model.enqueueChange( { isUndoable: false }, writer => {
+				writer.insertElement( 'paragraph', model.document.graveyard, 0 );
+			} );
+
+			const range = schema.getNearestSelectionRange( model.createPositionFromPath( model.document.graveyard, [ 0 ] ) );
+
+			expect( range ).to.be.null;
+		} );
 
 		describe( 'in case of objects which do not allow text inside', () => {
 			test(
