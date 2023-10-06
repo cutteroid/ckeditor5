@@ -56,6 +56,7 @@ export default class ImageSizeAttributes extends Plugin {
 	 * Registers converters for `width` and `height` attributes.
 	 */
 	private _registerConverters( imageType: 'imageBlock' | 'imageInline' ): void {
+
 		const editor = this.editor;
 		const imageUtils = editor.plugins.get( 'ImageUtils' );
 		const viewElementName = imageType === 'imageBlock' ? 'figure' : 'img';
@@ -139,7 +140,7 @@ export default class ImageSizeAttributes extends Plugin {
 				const img = imageUtils.findViewImgElement( viewElement )!;
 
 				if ( data.attributeNewValue !== null ) {
-					viewWriter.setAttribute( viewAttributeName, data.attributeNewValue, img );
+					// viewWriter.setAttribute( viewAttributeName, data.attributeNewValue, img );
 				} else {
 					viewWriter.removeAttribute( viewAttributeName, img );
 				}
@@ -161,7 +162,7 @@ export default class ImageSizeAttributes extends Plugin {
 				const aspectRatio = img.getStyle( 'aspect-ratio' );
 
 				if ( width && height && !aspectRatio ) {
-					viewWriter.setStyle( 'aspect-ratio', `${ width }/${ height }`, img );
+					// viewWriter.setStyle( 'aspect-ratio', `${ width }/${ height }`, img );
 				}
 			} );
 		}
