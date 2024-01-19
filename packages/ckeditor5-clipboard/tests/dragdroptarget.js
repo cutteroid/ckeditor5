@@ -1,25 +1,29 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
 /* globals document, Event, setTimeout */
 
-import DragDrop from '../src/dragdrop';
-import DragDropTarget from '../src/dragdroptarget';
-import PastePlainText from '../src/pasteplaintext';
+import DragDrop from '../src/dragdrop.js';
+import DragDropTarget from '../src/dragdroptarget.js';
+import PastePlainText from '../src/pasteplaintext.js';
 
-import ClassicTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/classictesteditor';
-import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph';
-import Table from '@ckeditor/ckeditor5-table/src/table';
-import HorizontalLine from '@ckeditor/ckeditor5-horizontal-line/src/horizontalline';
-import ShiftEnter from '@ckeditor/ckeditor5-enter/src/shiftenter';
-import BlockQuote from '@ckeditor/ckeditor5-block-quote/src/blockquote';
-import Bold from '@ckeditor/ckeditor5-basic-styles/src/bold';
+import ClassicTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/classictesteditor.js';
+import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
+import Table from '@ckeditor/ckeditor5-table/src/table.js';
+import HorizontalLine from '@ckeditor/ckeditor5-horizontal-line/src/horizontalline.js';
+import ShiftEnter from '@ckeditor/ckeditor5-enter/src/shiftenter.js';
+import BlockQuote from '@ckeditor/ckeditor5-block-quote/src/blockquote.js';
+import Bold from '@ckeditor/ckeditor5-basic-styles/src/bold.js';
+import { Image, ImageCaption } from '@ckeditor/ckeditor5-image';
 
-import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils';
+import { LiveRange } from '@ckeditor/ckeditor5-engine';
 
-import { setData as setModelData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model';
+import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils.js';
+import { setData as setModelData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model.js';
+
+import { CustomTitle } from './utils/customtitleplugin.js';
 
 describe( 'Drag and Drop target', () => {
 	let editorElement, editor, model, view, viewDocument, root, mapper, domConverter, dragDropTarget;
@@ -31,7 +35,19 @@ describe( 'Drag and Drop target', () => {
 		document.body.appendChild( editorElement );
 
 		editor = await ClassicTestEditor.create( editorElement, {
-			plugins: [ DragDrop, PastePlainText, Paragraph, Table, HorizontalLine, ShiftEnter, BlockQuote, Bold ]
+			plugins: [
+				DragDrop,
+				PastePlainText,
+				Paragraph,
+				Table,
+				HorizontalLine,
+				ShiftEnter,
+				BlockQuote,
+				Bold,
+				Image,
+				ImageCaption,
+				CustomTitle
+			]
 		} );
 
 		model = editor.model;
@@ -594,6 +610,221 @@ describe( 'Drag and Drop target', () => {
 				expect( spy.withArgs( 'drop-target' ).called ).to.be.true;
 				done();
 			} );
+		} );
+
+		it( 'should not drop target marker inside the element being dragged', () => {
+			setModelData( model,
+				'<blockQuote>' +
+					'<paragraph>one</paragraph>' +
+					'<paragraph>two</paragraph>' +
+					'<paragraph>three</paragraph>' +
+				'</blockQuote>'
+			);
+
+			const middleParagraphElement = root.getNodeByPath( [ 0, 1 ] );
+			const viewElement = mapper.toViewElement( middleParagraphElement );
+			const domNode = domConverter.mapViewToDom( viewElement );
+			const { clientX, clientY } = getMockedMousePosition( { domNode } );
+
+			// Simulate dragging blockquote into the first paragraph inside it
+			dragDropTarget.updateDropMarker(
+				viewElement,
+				null,
+				clientX,
+				clientY,
+				false,
+				LiveRange.fromRange( model.createRangeOn( root.getChild( 0 ) ) )
+			);
+
+			expect( model.markers.get( 'drop-target' ) ).to.be.null;
+		} );
+
+		it( 'should find place to drop target marker when dropping is not allowed on a given element', () => {
+			setModelData( model,
+				'<paragraph>' +
+					'[<imageInline src="/assets/sample.png"></imageInline>]' +
+				'</paragraph>' +
+				'<imageBlock src="/assets/sample.png">' +
+					'<caption></caption>' +
+				'</imageBlock>'
+			);
+
+			const inlineImageElement = root.getNodeByPath( [ 0, 0 ] );
+			const captionElement = root.getNodeByPath( [ 1, 0 ] );
+			const viewElement = mapper.toViewElement( captionElement );
+			const { x, y, height } = domConverter.mapViewToDom( viewElement ).getBoundingClientRect();
+
+			// Simulate dragging inline image into block image caption
+			dragDropTarget.updateDropMarker(
+				viewElement,
+				[ view.createRange( view.createPositionAt( viewElement, 0 ) ) ],
+				x,
+				y + ( height * 0.6 ),
+				false,
+				LiveRange.fromRange( model.createRangeOn( inlineImageElement ) )
+			);
+
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( root.getChild( 1 ), 'after' )
+			) ).to.be.true;
+		} );
+
+		it( 'should drop position when mouse is over the bottom half of the block element', () => {
+			setModelData( model,
+				'<paragraph>foobar</paragraph>' +
+				'<horizontalLine></horizontalLine>'
+			);
+
+			const paragraphElement = root.getChild( 0 );
+			const hrElement = root.getChild( 1 );
+			const hrViewElement = mapper.toViewElement( hrElement );
+			const { x, y, height } = domConverter.mapViewToDom( hrViewElement ).getBoundingClientRect();
+
+			// Simulate mouse position at 60% of the `<horizontalLine>` height.
+			dragDropTarget.updateDropMarker(
+				hrViewElement,
+				null,
+				x,
+				y + ( height * 0.6 ),
+				false,
+				LiveRange.fromRange( model.createRangeOn( paragraphElement ) )
+			);
+
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( hrElement, 'after' )
+			) ).to.be.true;
+		} );
+
+		it( 'should show drop target if the dragged element cannot be dropped on a given position, but is a block element', () => {
+			setModelData( model,
+				'<table><tableRow><tableCell><paragraph></paragraph></tableCell></tableRow></table>' +
+				'<imageBlock alt="bar" src="/assets/sample.png">' +
+					'<caption>Caption</caption>' +
+				'</imageBlock>'
+			);
+
+			const tableElement = root.getChild( 0 );
+			const imageBlock = root.getChild( 1 );
+			const blockImageViewElement = mapper.toViewElement( imageBlock );
+			const blockImageDomRect = domConverter
+				.mapViewToDom( blockImageViewElement )
+				.getBoundingClientRect();
+
+			// Simulate mouse position at 60% of the `<imageBlock>` height.
+			dragDropTarget.updateDropMarker(
+				blockImageViewElement,
+				null,
+				blockImageDomRect.x,
+				blockImageDomRect.y + ( blockImageDomRect.height * 0.6 ),
+				false,
+				LiveRange.fromRange( model.createRangeOn( tableElement ) )
+			);
+
+			// Marker should be places after the `<imageBlock>` element.
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( imageBlock, 'after' )
+			) ).to.be.true;
+
+			const captionViewElement = mapper.toViewElement( imageBlock.getChild( 0 ) );
+			const captionDomRect = domConverter
+				.mapViewToDom( captionViewElement )
+				.getBoundingClientRect();
+
+			// Simulate mouse position on `<caption>` element.
+			dragDropTarget.updateDropMarker(
+				captionViewElement,
+				null,
+				captionDomRect.x,
+				captionDomRect.y,
+				false,
+				LiveRange.fromRange( model.createRangeOn( tableElement ) )
+			);
+
+			// Marker should be places after the `<imageBlock>` element.
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( imageBlock, 'after' )
+			) ).to.be.true;
+		} );
+
+		it( 'should find drop position when hovering over object element', () => {
+			setModelData( model,
+				'<paragraph>[foo]</paragraph>' +
+				'<imageBlock alt="bar" src="/assets/sample.png">' +
+					'<caption>Caption</caption>' +
+				'</imageBlock>'
+			);
+
+			const modelElement = root.getChild( 0 );
+			const viewElement = mapper.toViewElement( modelElement );
+			const domNode = domConverter.mapViewToDom( viewElement );
+			const { clientX, clientY } = getMockedMousePosition( { domNode } );
+
+			// Get `<img>`, because that's what the event returns when dragging over an image.
+			const targetViewElement = viewElement.getChild( 0 );
+
+			dragDropTarget.updateDropMarker(
+				targetViewElement,
+				[ view.createRange( view.createPositionAt( viewDocument.getRoot().getChild( 1 ), 0 ) ) ],
+				clientX,
+				clientY,
+				false,
+				LiveRange.fromRange( model.createRangeOn( modelElement ) )
+			);
+
+			expect( model.markers.get( 'drop-target' ) ).to.not.be.undefined;
+		} );
+
+		it( 'should find the drop target if element cannot be dropped on a given position', () => {
+			setModelData( model,
+				'<paragraph>' +
+					'<imageInline alt="foo" src="/assets/sample.png"></imageInline>' +
+				'</paragraph>' +
+				'<imageBlock alt="bar" src="/assets/sample.png">' +
+					'<caption>Caption</caption>' +
+				'</imageBlock>'
+			);
+
+			const inlineImageElement = root.getNodeByPath( [ 0, 0 ] );
+			const blockImageElement = root.getChild( 1 );
+			const blockImageViewElement = mapper.toViewElement( blockImageElement );
+			const blockImageDomRect = domConverter
+				.mapViewToDom( blockImageViewElement )
+				.getBoundingClientRect();
+
+			// Simulate mouse position at 60% of the `<imageBlock>` height.
+			dragDropTarget.updateDropMarker(
+				blockImageViewElement,
+				null,
+				blockImageDomRect.x,
+				blockImageDomRect.y + ( blockImageDomRect.height * 0.6 ),
+				false,
+				LiveRange.fromRange( model.createRangeOn( inlineImageElement ) )
+			);
+
+			// Marker should be places after the `<imageBlock>` element.
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( blockImageElement, 'after' )
+			) ).to.be.true;
+
+			const captionViewElement = mapper.toViewElement( blockImageElement.getChild( 0 ) );
+			const captionDomRect = domConverter
+				.mapViewToDom( captionViewElement )
+				.getBoundingClientRect();
+
+			// Simulate mouse position on `<caption>` element.
+			dragDropTarget.updateDropMarker(
+				captionViewElement,
+				null,
+				captionDomRect.x,
+				captionDomRect.y + ( captionDomRect.height * 0.6 ),
+				false,
+				LiveRange.fromRange( model.createRangeOn( inlineImageElement ) )
+			);
+
+			// Marker should be placed after the `<imageBlock>`, because `<imageInline>` can't be dropped inside the `<caption>`.
+			expect( model.markers.get( 'drop-target' ).getRange().start.isEqual(
+				model.createPositionAt( root.getChild( 1 ), 'after' )
+			) ).to.be.true;
 		} );
 	} );
 

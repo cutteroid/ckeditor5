@@ -1,22 +1,25 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-import VirtualTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/virtualtesteditor';
+/* global setTimeout */
 
-import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph';
+import VirtualTestEditor from '@ckeditor/ckeditor5-core/tests/_utils/virtualtesteditor.js';
 
-import ImageBlockEditing from '../src/image/imageblockediting';
-import ImageInlineEditing from '../src/image/imageinlineediting';
-import ImageSizeAttributes from '../src/imagesizeattributes';
-import ImageResizeEditing from '../src/imageresize/imageresizeediting';
-import PictureEditing from '../src/pictureediting';
-import ImageUtils from '../src/imageutils';
-import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils';
+import Paragraph from '@ckeditor/ckeditor5-paragraph/src/paragraph.js';
 
-import { getData, setData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model';
-import { getData as getViewData } from '@ckeditor/ckeditor5-engine/src/dev-utils/view';
+import ReplaceImageSourceCommand from '../src/image/replaceimagesourcecommand.js';
+import ImageBlockEditing from '../src/image/imageblockediting.js';
+import ImageInlineEditing from '../src/image/imageinlineediting.js';
+import ImageSizeAttributes from '../src/imagesizeattributes.js';
+import ImageResizeEditing from '../src/imageresize/imageresizeediting.js';
+import PictureEditing from '../src/pictureediting.js';
+import ImageUtils from '../src/imageutils.js';
+import testUtils from '@ckeditor/ckeditor5-core/tests/_utils/utils.js';
+
+import { getData, setData } from '@ckeditor/ckeditor5-engine/src/dev-utils/model.js';
+import { getData as getViewData } from '@ckeditor/ckeditor5-engine/src/dev-utils/view.js';
 
 describe( 'ImageSizeAttributes', () => {
 	let editor, model, view;
@@ -566,6 +569,30 @@ describe( 'ImageSizeAttributes', () => {
 					} );
 				} );
 			} );
+		} );
+
+		it( 'should set aspect-ration on replaced image', done => {
+			const imageUtils = editor.plugins.get( 'ImageUtils' );
+			const command = new ReplaceImageSourceCommand( editor );
+
+			setData( model, `[<imageBlock
+				src="foo/bar.jpg"
+				width="100"
+				height="200"
+			></imageBlock>]` );
+
+			const element = model.document.selection.getSelectedElement();
+			const viewElement = editor.editing.mapper.toViewElement( element );
+			const img = imageUtils.findViewImgElement( viewElement );
+
+			expect( img.getStyle( 'aspect-ratio' ) ).to.equal( '100/200' );
+
+			command.execute( { source: '/assets/sample.png' } );
+
+			setTimeout( () => {
+				expect( img.getStyle( 'aspect-ratio' ) ).to.equal( '96/96' );
+				done();
+			}, 100 );
 		} );
 	} );
 } );

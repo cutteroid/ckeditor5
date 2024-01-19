@@ -2,6 +2,8 @@
 category: framework-architecture
 meta-title: UI library | CKEditor 5 Framework Documentation
 order: 40
+toc-limit: 3
+modified_at: 2024-01-03
 ---
 
 # UI library
@@ -10,7 +12,7 @@ The standard UI library of CKEditor&nbsp;5 is [`@ckeditor/ckeditor5-ui`](https:/
 
 ## Views
 
-Views use [templates](#templates) to build the UI. They also provide observable interfaces that other features (e.g. {@link framework/architecture/core-editor-architecture#plugins plugins}, {@link framework/architecture/core-editor-architecture#commands commands}, etc.) can use to change the DOM without any actual interaction with the native API.
+Views use [templates](#templates) to build the UI. They also provide observable interfaces that other features (like {@link framework/architecture/core-editor-architecture#plugins plugins}, {@link framework/architecture/core-editor-architecture#commands commands}, etc.) can use to change the DOM without any actual interaction with the native API.
 
 <info-box>
 	All views can be localized using the `locale` instance with which they were created. Check the {@link framework/deep-dive/localization localization guide} to see how to use the `t()` function available in the `locale` instance.
@@ -159,7 +161,7 @@ view.element.placeholder = 'A new placeholder';
 	Check out the {@link module:ui/template~TemplateDefinition} to learn more about the template syntax and other advanced concepts.
 </info-box>
 
-Templates support {@link framework/architecture/core-editor-architecture#event-system-and-observables observable properties} bindings and handle native DOM events. A very simple template can look like this:
+Templates support {@link framework/architecture/core-editor-architecture#event-system-and-observables observable properties} bindings and handle native DOM events. A simple template can look like this:
 
 ```js
 new Template( {
@@ -196,7 +198,7 @@ Similarly, when rendered, the template also takes care of DOM events. A binding 
 
 Views are organized into {@link module:ui/viewcollection~ViewCollection collections} which manage their elements and propagate DOM events even further. Adding or removing a view in a collection moves the {@link module:ui/view~View#element view's element} in the DOM to reflect the position.
 
-Each editor UI has a "root view" (e.g. {@link e.g. {@link module:editor-classic/classiceditorui~ClassicEditorUI#view `ClassicEditor#view`}), which can be found under `editor.ui.view`. Such view usually defines the container element of the editor and undermost view collections that other features can populate.
+Each editor UI has a "root view" (like {@link module:editor-classic/classiceditorui~ClassicEditorUI#view `ClassicEditor#view`}), which can be found under `editor.ui.view`. Such view usually defines the container element of the editor and undermost view collections that other features can populate.
 
 For instance, the `BoxedEditorUiView` class defines two collections:
 * {@link module:ui/editorui/boxed/boxededitoruiview~BoxedEditorUIView#top} &ndash; A collection that hosts the toolbar.
@@ -204,7 +206,7 @@ For instance, the `BoxedEditorUiView` class defines two collections:
 
 It also inherits the {@link module:ui/editorui/editoruiview~EditorUIView#body} collection which resides directly in the `<body>` of the web page and stores floating elements like {@link module:ui/panel/balloon/balloonpanelview~BalloonPanelView balloon panels}.
 
-Plugins can populate the root view collections with their children. Such child views become a part of the UI tree and will be managed by the editor, e.g. they will be initialized and destroyed along with the editor.
+Plugins can populate the root view collections with their children. Such child views become a part of the UI tree and will be managed by the editor. This means that, for example, they will be initialized and destroyed along with the editor.
 
 ```js
 class MyPlugin extends Plugin {
@@ -244,7 +246,7 @@ EditorUIView
 
 ## Using the existing components
 
-The framework provides a number of common {@link api/ui components} like {@link module:ui/button/buttonview~ButtonView `ButtonView`} or {@link module:ui/toolbar/toolbarview~ToolbarView `ToolbarView`} that can be helpful when developing a new user interface.
+The framework provides some common {@link api/ui components} like {@link module:ui/button/buttonview~ButtonView `ButtonView`} or {@link module:ui/toolbar/toolbarview~ToolbarView `ToolbarView`} that can be helpful when developing a new user interface.
 
 For example, to create a toolbar with a few buttons inside, `ToolbarView` and `ButtonView` classes need to be imported first:
 
@@ -319,16 +321,16 @@ const dropdownView = createDropdown( locale, SplitButtonView );
 ```
 
 This kind of (default) dropdown comes with a set of behaviors:
-* It closes the panel when it loses the focus, e.g. the user moved the focus elsewhere.
+* It closes the panel when it loses the focus, for example, the user moved the focus elsewhere.
 * It closes the panel upon the {@link module:ui/dropdown/dropdownview~DropdownView#event:execute `execute`} event.
-* It focuses the view hosted in the panel, e.g. when navigating the toolbar using the keyboard.
+* It focuses the view hosted in the panel, for example, when navigating the toolbar using the keyboard.
 
 #### Setting label, icon, and tooltip
 
 To customize the button of the dropdown, use the {@link module:ui/dropdown/dropdownview~DropdownView#buttonView `buttonView`} property. It gives a direct access to the {@link module:ui/button/buttonview~ButtonView `ButtonView` instance} used by your dropdown.
 
 <info-box>
-	If your dropdown has been created using the {@link module:ui/dropdown/button/splitbuttonview~SplitButtonView}, use the {@link module:ui/dropdown/button/splitbuttonview~SplitButtonView#actionView} to access its main region, e.g. `dropdownView.buttonView.actionView.set( /* ... */ )`.
+	If your dropdown has been created using the {@link module:ui/dropdown/button/splitbuttonview~SplitButtonView}, use the {@link module:ui/dropdown/button/splitbuttonview~SplitButtonView#actionView} to access its main region, for example, `dropdownView.buttonView.actionView.set( /* ... */ )`.
 </info-box>
 
 To control the label of the dropdown, first make it visible using the {@link module:ui/button/buttonview~ButtonView#withText} property and then set the text of the {@link module:ui/button/buttonview~ButtonView#label}:
@@ -379,7 +381,7 @@ dropdownView.buttonView.set( {
 The {@link module:ui/list/listview~ListView} can be added to a dropdown using the {@link module:ui/dropdown/utils~addListToDropdown} helper.
 
 ```js
-import { Model, addListToDropdown, createDropdown } from '@ckeditor/ckeditor5-ui';
+import { ViewModel, addListToDropdown, createDropdown } from '@ckeditor/ckeditor5-ui';
 import { Collection } from '@ckeditor/ckeditor5-utils';
 
 // The default dropdown.
@@ -390,7 +392,7 @@ const items = new Collection();
 
 items.add( {
 	type: 'button',
-	model: new Model( {
+	model: new ViewModel( {
 		withText: true,
 		label: 'Foo'
 	} )
@@ -398,7 +400,7 @@ items.add( {
 
 items.add( {
 	type: 'button',
-	model: new Model( {
+	model: new ViewModel( {
 		withText: true,
 		label: 'Bar'
 	} )
@@ -439,9 +441,375 @@ dropdownView.bind( 'isEnabled' ).toMany( buttons, 'isEnabled',
 );
 ```
 
+### Dialogs and modals
+
+The framework provides the UI dialog component. The dialog system in CKEditor&nbsp;5 is brought by the {@link module:ui/dialog/dialog~Dialog `Dialog` plugin} that offers API for displaying [views](#views) in dialogs. In a sense, this plugin corresponds to another one that manages views in balloons (popovers) across the UI ({@link module:ui/panel/balloon/contextualballoon~ContextualBalloon `ContextualBalloon` plugin}).
+
+Dialog is a pop-up window that does not close when the user clicks outside of it. It allows for interacting with the editor and its content while being open (unless it is a modal, which blocks the interaction with the rest of the page until it is closed). A dialog is also {@link module:ui/bindings/draggableviewmixin~DraggableViewMixin draggable} with mouse or touch if you configure it to display a [header](#header). Only one dialog can be open at a time &ndash; opening another one closes the previously visible one.
+
+Check out these {@link installation/plugins/plugins example plugins} that display:
+* a {@link framework/architecture/ui-components#dialog dialog window},
+* a {@link framework/architecture/ui-components#modal modal window}.
+
+Learn more about the [structure and behavior](#structure-and-behavior) of dialog windows.
+
+#### Modals
+
+Modals are similar to the dialogs &ndash; they share the same structure rules, API etc. The major difference is that while a modal is open, the user cannot interact with the editor or the rest of the page &ndash; it is covered with a non-transparent overlay. It can be used for example to enforce user to take one of the specified actions.
+
+To create a modal, use the optional {@link module:ui/dialog/dialog~DialogDefinition#isModal `isModal`} property of the {@link module:ui/dialog/dialog~Dialog#show `Dialog#show()`} method:
+
+```js
+editor.plugins.get( 'Dialog' ).show( {
+	isModal: true,
+
+	// The rest of the dialog definition...
+} );
+```
+
+There are different ways to close a modal: either by clicking the "Close" button in the corner (if the [header](#header) is visible), using the <kbd>Esc</kbd> keystroke or one of the [action buttons](#action-buttons).
+
+<info-box warning>
+	Below you will learn about the ways to disable some of these methods, but remember to always leave at least one option to close the modal. Otherwise the users will be locked inside.
+</info-box>
+
+#### Structure and behavior
+
+A dialog can consist of three parts, each of which is optional: the [header](#header) (also used as a drag handler), the [content](#content) (the body of the dialog) and the [action buttons](#action-buttons) area (a collection of buttons). The order of these parts cannot be changed.
+
+##### Header
+
+A header may consist of any combination of three elements:
+
+* the icon,
+* the title,
+* the "Close" button.
+
+By default, the "Close" button ("X") is added to the header as long as you provide an icon or a title. To hide it, set the `hasCloseButton` flag to `false`:
+
+```js
+import { icons } from 'ckeditor5/src/core.js';
+
+// ...
+
+editor.plugins.get( 'Dialog' ).show( {
+	icon: icons.pencil,
+	title: 'My first dialog',
+	// Do not display the "Close" button.
+	hasCloseButton: false,
+
+	// The rest of the dialog definition...
+} );
+```
+
+<info-box>
+	If you decide to hide the "Close" button, remember to leave some other way to close the dialog. The <kbd>Esc</kbd> keystroke also closes the dialog but it may not be available, for example for touch screen users.
+</info-box>
+
+##### Content
+
+This part can be a single [view](#views) or a collection of views. They will be displayed directly inside the body of the dialog. Below, you can find an example of how to insert a block of text into the dialog.
+
+```js
+const textView = new View( locale );
+
+textView.setTemplate( {
+	tag: 'div',
+	attributes: {
+		style: {
+			padding: 'var(--ck-spacing-large)',
+			whiteSpace: 'initial',
+			width: '100%',
+			maxWidth: '500px'
+		},
+		tabindex: -1
+	},
+	children: [
+		'This is a sample content of the dialog.',
+		'You can put here text, images, inputs, buttons, etc.'
+	]
+} );
+
+editor.plugins.get( 'Dialog' ).show( {
+	title: 'Info dialog with text',
+	content: textView,
+
+	// The rest of the dialog definition...
+} );
+```
+
+Keep in mind that the content of the dialog determines its dimensions. If you want to display a dialog with a fixed size, make sure the content has a fixed size too. For displaying long text, we recommend setting `max-height: [fixed value]` together with `overflow: auto` on the content container (element) to restrict the vertical space the dialog will use on the screen.
+
+##### Action buttons
+
+The last segment of the dialog is the actions area, where the buttons are displayed. Their behavior can be fully customized using the `onCreate()` and `onExecute()` callbacks. Below you can find an example of the configuration for the four custom buttons:
+
+* The "OK" button that closes the dialog and has a custom CSS class set.
+* The "Set custom title" button that changes the dialog title.
+* The "This button will be enabled in..." button that changes its state after a few seconds.
+* The "Cancel" button that closes the dialog.
+
+```js
+editor.plugins.get( 'Dialog' ).show( {
+	// ...
+
+	actionButtons: [
+		{
+			label: 'OK',
+			class: 'ck-button-action',
+			withText: true,
+			onExecute: () => dialog.hide()
+		},
+		{
+			label: 'Set custom title',
+			withText: true,
+			onExecute: () => {
+				dialog.view.headerView.label = 'New title';
+			}
+		},
+		{
+			label: 'This button will be enabled in 5...'
+			withText: true,
+			onCreate: buttonView => {
+				buttonView.isEnabled = false;
+				let counter = 5;
+
+				const interval = setInterval( () => {
+					buttonView.label = `This button will be enabled in ${ --counter }...`;
+
+					if ( counter === 0 ) {
+						clearInterval( interval );
+						buttonView.label = 'This button is now enabled!';
+						buttonView.isEnabled = true;
+					}
+				}, 1000 );
+			}
+		},
+		{
+			label: 'Cancel',
+			withText: true,
+			onExecute: () => dialog.hide()
+		}
+	]
+} );
+```
+
+You can also bind the buttons state to the content to ensure some required actions were taken by the user. See the example of the "Yes/No modal" definition that requires the user to mark the checkbox to close the modal:
+
+```js
+// First, create the content to be injected into a the modal.
+// In this example a simple switch button is used.
+const switchButtonView = new SwitchButtonView( locale );
+
+switchButtonView.set( {
+	label: t( 'I accept the terms and conditions' ),
+	withText: true
+} );
+
+// Manage the state of the switch button when the user clicks it.
+switchButtonView.on( 'execute', () => {
+	switchButtonView.isOn = !switchButtonView.isOn;
+} );
+
+// Then show the modal.
+editor.plugins.get( 'Dialog' ).show( {
+	id: 'yesNoModal',
+	isModal: true,
+	title: 'Accept the terms to enable the "Yes" button',
+	hasCloseButton: false,
+	content: switchButtonView,
+	actionButtons: [
+		{
+			label: t( 'Yes' ),
+			class: 'ck-button-action',
+			withText: true,
+			onExecute: () => dialog.hide(),
+			onCreate: buttonView => {
+				// By default, the "Yes" button in the dialog is disabled.
+				buttonView.isEnabled = false;
+
+				// The "Yes" button will be enabled as soon as the user
+				// toggles the switch button.
+				switchButtonView.on( 'change:isOn', () => {
+					buttonView.isEnabled = switchButtonView.isOn;
+				} );
+			}
+		},
+		{
+			label: t( 'No' ),
+			withText: true,
+			onExecute: () => dialog.hide()
+		}
+	],
+	// Disable the `Esc` key.
+	onShow: dialog => {
+		dialog.view.on( 'close', ( evt, data ) => {
+			if ( data.source === 'escKeyPress' ) {
+				evt.stop();
+			}
+		}, { priority: 'high' } );
+	}
+} );
+```
+
+#### Accessibility
+
+Dialogs provide full keyboard accessibility. While a dialog is open, strike the <kbd>Ctrl</kbd>+<kbd>F6</kbd> combination to move the focus between the editor and the dialog. It can also be closed at any time by pressing the <kbd>Esc</kbd> key (even if the "Close" button is hidden). To navigate through the dialog, use the <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> keystrokes. The content of the dialog is also available for screen readers.
+
+#### API
+
+The dialog's lifecycle (creating and destroying) is managed by the {@link module:ui/dialog/dialog Dialog plugin}. It provides two public methods: {@link module:ui/dialog/dialog~Dialog#show `show()`} and {@link module:ui/dialog/dialog~Dialog#hide `hide()`}. Both of them fire the respective events ({@link module:ui/dialog/dialog~DialogShowEvent `show`} and {@link module:ui/dialog/dialog~DialogHideEvent `hide`}), so it is possible to hook after or before them.
+
+##### The `Dialog#show()` method
+
+The {@link module:ui/dialog/dialog~Dialog#show `Dialog#show()`} method hides any visible dialog and displays a new one. It accepts a dialog definition that allow to shape the structure and behavior of the dialog. See {@link module:ui/dialog/dialog~DialogDefinition `DialogDefinition`} API to learn more about the possibilities it gives.
+
+##### The `Dialog#show:[id]` event
+
+When the [`Dialog#show()`](#the-dialogshow-method) function gets called, a namespaced {@link module:ui/dialog/dialog~DialogShowEvent `show:[id]`} event is fired, allowing for customizing the dialog's behavior.
+
+For example, you can change the default position of the "Find and replace" dialog from the editor corner to the bottom with the following code:
+
+```js
+import { DialogViewPosition } from 'ckeditor5/src/ui.js';
+
+// ...
+
+editor.plugins.get( 'Dialog' ).on( 'show:findAndReplace', ( evt, data ) => {
+	Object.assign( data, { position: DialogViewPosition.EDITOR_BOTTOM_CENTER } );
+}, { priority: 'high' } );
+```
+
+Please note that you can also listen to the general `'show'` event to customize all dialogs at once.
+
+##### The `Dialog#hide()` method
+
+Executing the {@link module:ui/dialog/dialog~Dialog#hide `Dialog#hide()`} method will hide the dialog and also call the [`onHide()`](#using-the-onshow-and-onhide-callbacks) callback if it was provided in the respective {@link module:ui/dialog/dialog~Dialog#show `Dialog#show()`} method call.
+
+##### The `Dialog#hide:[id]` event
+
+Similarly to the [`show:[id]`](#the-dialogshowid-event) event, the {@link module:ui/dialog/dialog~DialogHideEvent `hide:[id]`} event gets fired when the [`Dialog#hide()`](#the-dialoghide-method) is called and allows for executing custom actions:
+
+```js
+// Logs after the "Find and Replace" dialog gets hidden.
+editor.plugins.get( 'Dialog' ).on( 'hide:findAndReplace', () => {
+	console.log( 'The "Find and Replace" dialog was hidden.' );
+} );
+```
+
+Please note that you can also listen to the general `'hide'` event to react to all dialogs at once.
+
+##### The `DialogView#close` event
+
+When the <kbd>Esc</kbd> key or the "Close" button is pressed with the dialog open, the {@link module:ui/dialog/dialogview~DialogView `DialogView`} fires the {@link module:ui/dialog/dialogview~DialogViewCloseEvent `close`} event with the according `source` parameter. Then the {@link module:ui/dialog/dialog~Dialog plugin} hides (and destroys) the dialog.
+
+You can control this behavior, for example disabling the <kbd>Esc</kbd> key handling:
+
+```js
+editor.plugins.get( 'Dialog' ).view.on( 'close', ( evt, data ) => {
+	if ( data.source === 'escKeyPress' ) {
+		evt.stop();
+	}
+} )
+```
+
+Such code can also be passed directly in the `show()` method call in `onShow` callback:
+
+```js
+editor.plugins.get( 'Dialog' ).show( {
+	onShow: dialog => {
+		dialog.view!.on( 'close', ( evt, data ) => {
+			if ( data.source === 'escKeyPress' ) {
+				evt.stop();
+			}
+		}, { priority: 'high' } );
+	}
+	// The rest of the dialog definition...
+} );
+```
+
+<info-box warning>
+	Blocking the usage of the <kbd>Esc</kbd> key is limits the accessibility and is considered a bad practise. If you really need to do this, remember to always leave at least one way to close the dialog or modal.
+</info-box>
+
+##### Using the `onShow` and `onHide` callbacks
+
+The {@link module:ui/dialog/dialog~DialogDefinition `DialogDefinition`} accepts two callbacks allowing to customize the actions after the dialog is shown ({@link module:ui/dialog/dialog~DialogDefinition#onShow `onShow()`}) and hidden ({@link module:ui/dialog/dialog~DialogDefinition#onHide `onHide()`}).
+
+The `onShow` callback allows to manipulate the dialog values or set additional listeners. In the [`DialogView#event:close` event](#the-dialogviewclose-event) section you can find an example of how to disable the <kbd>Esc</kbd> key with it. The code below shows how to bootstrap the dynamic field filling.
+
+```js
+// Import necessary classes.
+import { View, InputTextView } from '@ckeditor/ckeditor5-ui';
+
+// Create an input.
+const input = new InputTextView();
+const dialogBody = new View();
+
+dialogBody.setTemplate( {
+	tag: 'div',
+	children: [
+		// Other elements of the view...
+		input
+	]
+	// The rest of the template...
+} );
+
+editor.plugins.get( 'Dialog' ).show( {
+	onShow: () => {
+		// Set the dynamic initial input value.
+		input.value = getDataFromExternalSource();
+	},
+	// The rest of the dialog definition...
+} );
+```
+
+The `onHide` callback will be particularly helpful to reset the state of the component or its controller once the dialog is closed.
+
+```js
+// Executing inside a class with `controller` property that has state connected to the dialog.
+editor.plugins.get( 'Dialog' ).show( {
+	onHide: dialog => {
+		this.controller.reset(); // Reset the controller state once dialog is hidden.
+	},
+	// The rest of the dialog definition...
+} );
+```
+
+#### Visibility and positioning
+
+Only one dialog can be visible at the same time. Opening another dialog (from the same or another editor instance) will close the previous dialog.
+
+If not specified otherwise, the dialog will be displayed in the center of the editor's editing area. A modal will be displayed in the center of the screen. Custom dialogs can have their position set to one of the pre–configured options (see {@link module:ui/dialog/dialogview.DialogViewPosition}). The relative positioning is disabled once the dialog is manually dragged by the user.
+
+* When you develop your own dialog, specify the {@link module:ui/dialog/dialog~DialogDefinition#position} property in a definition passed to the {@link module:ui/dialog/dialog~Dialog#show `Dialog#show()`} method, for instance:
+
+```js
+import { DialogViewPosition } from 'ckeditor5/src/ui.js';
+
+// ...
+
+const dialog = editor.plugins.get( 'Dialog' );
+
+dialog.show( {
+	// ...
+
+	// Change the default position of the dialog.
+	position: DialogViewPosition.EDITOR_BOTTOM_CENTER
+} );
+```
+
+* To change the position of an existing dialog or manage positions dynamically, use the {@link module:ui/dialog/dialog~DialogShowEvent `show`} event listener (see the [example code](#the-dialogshowid-event)).
+
+In some cases, for instance when the content of the dialog or the environment changes (for example, the editor is resized), you may want to force-update the position of the dialog. This will restore its position to the {@link module:ui/dialog/dialog~DialogDefinition#position configured default}. It will also reset any manual positioning (dragging) done by the user. To do so, use the {@link module:ui/dialog/dialogview~DialogView#updatePosition} method.
+
+```js
+editor.plugins.get( 'Dialog' ).view.updatePosition();
+```
+
 ### Best practices
 
-It is advised that for the best user experience the editing view gets {@link module:engine/view/view~View#focus focused} upon any user action (e.g. executing a command) to make sure the editor retains focus:
+It is advised that for the best user experience the editing view gets {@link module:engine/view/view~View#focus focused} upon any user action (like executing a command) to make sure the editor retains focus:
 
 ```js
 // Execute some action on dropdown#execute event.
@@ -461,7 +829,7 @@ The framework offers built–in classes that help manage keystrokes and focus in
 
 ### Focus tracker
 
-The {@link module:utils/focustracker~FocusTracker `FocusTracker`} class can observe a number of HTML elements and determine if one of them is focused either by the user (clicking, typing) or using the `HTMLElement.focus()` DOM method.
+The {@link module:utils/focustracker~FocusTracker `FocusTracker`} class can observe some HTML elements and determine if one of them is focused either by the user (clicking, typing) or using the `HTMLElement.focus()` DOM method.
 
 ```js
 import { FocusTracker } from '@ckeditor/ckeditor5-utils';

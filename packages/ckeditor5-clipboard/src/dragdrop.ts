@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -44,7 +44,7 @@ import {
 
 import ClipboardPipeline, {
 	type ClipboardContentInsertionEvent
-} from './clipboardpipeline';
+} from './clipboardpipeline.js';
 
 import ClipboardObserver, {
 	type ViewDocumentDragEndEvent,
@@ -53,10 +53,10 @@ import ClipboardObserver, {
 	type ViewDocumentDragLeaveEvent,
 	type ViewDocumentDragStartEvent,
 	type ViewDocumentClipboardInputEvent
-} from './clipboardobserver';
+} from './clipboardobserver.js';
 
-import DragDropTarget from './dragdroptarget';
-import DragDropBlockToolbar from './dragdropblocktoolbar';
+import DragDropTarget from './dragdroptarget.js';
+import DragDropBlockToolbar from './dragdropblocktoolbar.js';
 
 import '../theme/clipboard.css';
 
@@ -345,7 +345,14 @@ export default class DragDrop extends Plugin {
 
 			const { clientX, clientY } = ( data as DomEventData<DragEvent> ).domEvent;
 
-			dragDropTarget.updateDropMarker( data.target, data.targetRanges, clientX, clientY, this._blockMode );
+			dragDropTarget.updateDropMarker(
+				data.target,
+				data.targetRanges,
+				clientX,
+				clientY,
+				this._blockMode,
+				this._draggedRange
+			);
 
 			// If this is content being dragged from another editor, moving out of current editor instance
 			// is not possible until 'dragend' event case will be fixed.
@@ -382,7 +389,14 @@ export default class DragDrop extends Plugin {
 			}
 
 			const { clientX, clientY } = ( data as DomEventData<DragEvent> ).domEvent;
-			const targetRange = dragDropTarget.getFinalDropRange( data.target, data.targetRanges, clientX, clientY, this._blockMode );
+			const targetRange = dragDropTarget.getFinalDropRange(
+				data.target,
+				data.targetRanges,
+				clientX,
+				clientY,
+				this._blockMode,
+				this._draggedRange
+			);
 
 			if ( !targetRange ) {
 				this._finalizeDragging( false );

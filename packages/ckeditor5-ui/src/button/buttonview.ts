@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -7,14 +7,14 @@
  * @module ui/button/buttonview
  */
 
-import View from '../view';
-import IconView from '../icon/iconview';
+import View from '../view.js';
+import IconView from '../icon/iconview.js';
 
-import type { TemplateDefinition } from '../template';
-import type ViewCollection from '../viewcollection';
-import type { default as Button, ButtonExecuteEvent } from './button';
-import type ButtonLabel from './buttonlabel';
-import ButtonLabelView from './buttonlabelview';
+import type { TemplateDefinition } from '../template.js';
+import type ViewCollection from '../viewcollection.js';
+import type { default as Button, ButtonExecuteEvent } from './button.js';
+import type ButtonLabel from './buttonlabel.js';
+import ButtonLabelView from './buttonlabelview.js';
 
 import {
 	env,
@@ -155,11 +155,6 @@ export default class ButtonView extends View<HTMLButtonElement> implements Butto
 	/**
 	 * @inheritDoc
 	 */
-	declare public ariaChecked: boolean | undefined;
-
-	/**
-	 * @inheritDoc
-	 */
 	declare public ariaLabel?: string | undefined;
 
 	/**
@@ -196,7 +191,6 @@ export default class ButtonView extends View<HTMLButtonElement> implements Butto
 		const ariaLabelUid = uid();
 
 		// Implement the Button interface.
-		this.set( 'ariaChecked', undefined );
 		this.set( 'ariaLabel', undefined );
 		this.set( 'ariaLabelledBy', `ck-editor__aria-label_${ ariaLabelUid }` );
 		this.set( 'class', undefined );
@@ -255,7 +249,6 @@ export default class ButtonView extends View<HTMLButtonElement> implements Butto
 				'aria-label': bind.to( 'ariaLabel' ),
 				'aria-labelledby': bind.to( 'ariaLabelledBy' ),
 				'aria-disabled': bind.if( 'isEnabled', true, value => !value ),
-				'aria-checked': bind.to( 'isOn' ),
 				'aria-pressed': bind.to( 'isOn', value => this.isToggleable ? String( !!value ) : false ),
 				'data-cke-tooltip-text': bind.to( '_tooltipString' ),
 				'data-cke-tooltip-position': bind.to( 'tooltipPosition' )

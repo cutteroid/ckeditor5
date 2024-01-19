@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -151,13 +151,6 @@ export default interface Button {
 	 * @observable
 	 */
 	class: string | undefined;
-
-	/**
-	 * (Optional) The ARIA property reflected by the `aria-checked` DOM attribute used by assistive technologies.
-	 *
-	 * @observable
-	 */
-	ariaChecked?: boolean | undefined;
 
 	/**
 	 * (Optional) The ARIA property reflected by the `aria-label` DOM attribute used by assistive technologies.

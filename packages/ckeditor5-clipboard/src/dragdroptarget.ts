@@ -1,5 +1,5 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
@@ -13,8 +13,10 @@ import {
 } from '@ckeditor/ckeditor5-core';
 
 import {
+	type Node,
 	type Element,
 	type Range,
+	type LiveRange,
 	type ViewElement,
 	type ViewRange,
 	type DowncastWriter,
@@ -30,7 +32,7 @@ import {
 	type DomEmitter
 } from '@ckeditor/ckeditor5-utils';
 
-import LineView from './lineview';
+import LineView from './lineview.js';
 
 import { throttle } from 'lodash-es';
 
@@ -122,16 +124,32 @@ export default class DragDropTarget extends Plugin {
 		targetViewRanges: Array<ViewRange> | null,
 		clientX: number,
 		clientY: number,
-		blockMode: boolean
+		blockMode: boolean,
+		draggedRange: LiveRange | null
 	): void {
 		this.removeDropMarkerDelayed.cancel();
 
-		const targetRange = findDropTargetRange( this.editor, targetViewElement, targetViewRanges, clientX, clientY, blockMode );
+		const targetRange = findDropTargetRange(
+			this.editor,
+			targetViewElement,
+			targetViewRanges,
+			clientX,
+			clientY,
+			blockMode,
+			draggedRange
+		);
 
-		/* istanbul ignore else -- @preserve */
-		if ( targetRange ) {
-			this._updateDropMarkerThrottled( targetRange );
+		/* istanbul ignore next -- @preserve */
+		if ( !targetRange ) {
+			return;
 		}
+
+		if ( draggedRange && draggedRange.containsRange( targetRange ) ) {
+			// Target range is inside the dragged range.
+			return this.removeDropMarker();
+		}
+
+		this._updateDropMarkerThrottled( targetRange );
 	}
 
 	/**
@@ -144,9 +162,18 @@ export default class DragDropTarget extends Plugin {
 		targetViewRanges: Array<ViewRange> | null,
 		clientX: number,
 		clientY: number,
-		blockMode: boolean
+		blockMode: boolean,
+		draggedRange: LiveRange | null
 	): Range | null {
-		const targetRange = findDropTargetRange( this.editor, targetViewElement, targetViewRanges, clientX, clientY, blockMode );
+		const targetRange = findDropTargetRange(
+			this.editor,
+			targetViewElement,
+			targetViewRanges,
+			clientX,
+			clientY,
+			blockMode,
+			draggedRange
+		);
 		// The dragging markers must be removed after searching for the target range because sometimes
 		// the target lands on the marker itself.
 		this.removeDropMarker();
@@ -266,6 +293,11 @@ export default class DragDropTarget extends Plugin {
 		const domElementAfter = viewElementAfter ? editing.view.domConverter.mapViewToDom( viewElementAfter ) : null;
 
 		const viewElementParent = editing.mapper.toViewElement( nodeParent )!;
+
+		if ( !viewElementParent ) {
+			return;
+		}
+
 		const domElementParent = editing.view.domConverter.mapViewToDom( viewElementParent )!;
 
 		const domScrollableRect = this._getScrollableRect( viewElementParent );
@@ -336,7 +368,8 @@ function findDropTargetRange(
 	targetViewRanges: Array<ViewRange> | null,
 	clientX: number,
 	clientY: number,
-	blockMode: boolean
+	blockMode: boolean,
+	draggedRange: LiveRange | null
 ): Range | null {
 	const model = editor.model;
 	const mapper = editor.editing.mapper;
@@ -347,19 +380,26 @@ function findDropTargetRange(
 	while ( modelElement ) {
 		if ( !blockMode ) {
 			if ( model.schema.checkChild( modelElement, '$text' ) ) {
-				const targetViewPosition = targetViewRanges ? targetViewRanges[ 0 ].start : null;
-				const targetModelPosition = targetViewPosition ? mapper.toModelPosition( targetViewPosition ) : null;
+				if ( targetViewRanges ) {
+					const targetViewPosition = targetViewRanges[ 0 ].start;
+					const targetModelPosition = mapper.toModelPosition( targetViewPosition );
+					const canDropOnPosition = !draggedRange || Array
+						.from( draggedRange.getItems() )
+						.every( item => model.schema.checkChild( targetModelPosition, item as Node ) );
 
-				if ( targetModelPosition ) {
-					if ( model.schema.checkChild( targetModelPosition, '$text' ) ) {
-						return model.createRange( targetModelPosition );
-					}
-					else if ( targetViewPosition ) {
+					if ( canDropOnPosition ) {
+						if ( model.schema.checkChild( targetModelPosition, '$text' ) ) {
+							return model.createRange( targetModelPosition );
+						}
+						else if ( targetViewPosition ) {
 						// This is the case of dropping inside a span wrapper of an inline image.
-						return findDropTargetRangeForElement( editor,
-							getClosestMappedModelElement( editor, targetViewPosition.parent as ViewElement ),
-							clientX, clientY
-						);
+							return findDropTargetRangeForElement(
+								editor,
+								getClosestMappedModelElement( editor, targetViewPosition.parent as ViewElement ),
+								clientX,
+								clientY
+							);
+						}
 					}
 				}
 			}
@@ -373,7 +413,7 @@ function findDropTargetRange(
 		}
 		else if ( model.schema.checkChild( modelElement, '$block' ) ) {
 			const childNodes = Array.from( modelElement.getChildren() )
-				.filter( ( node ): node is Element => node.is( 'element' ) && !isFloatingElement( editor, node ) );
+				.filter( ( node ): node is Element => node.is( 'element' ) && !shouldIgnoreElement( editor, node ) );
 
 			let startIndex = 0;
 			let endIndex = childNodes.length;
@@ -403,13 +443,18 @@ function findDropTargetRange(
 }
 
 /**
- * Returns true for elements with floating style set.
+ * Returns true for elements which should be ignored.
  */
-function isFloatingElement( editor: Editor, modelElement: Element ): boolean {
+function shouldIgnoreElement( editor: Editor, modelElement: Element ): boolean {
 	const mapper = editor.editing.mapper;
 	const domConverter = editor.editing.view.domConverter;
 
 	const viewElement = mapper.toViewElement( modelElement )!;
+
+	if ( !viewElement ) {
+		return true;
+	}
+
 	const domElement = domConverter.mapViewToDom( viewElement )!;
 
 	return global.window.getComputedStyle( domElement ).float != 'none';

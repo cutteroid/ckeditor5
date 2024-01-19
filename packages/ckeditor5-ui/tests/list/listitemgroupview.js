@@ -1,18 +1,22 @@
 /**
- * @license Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+ * @license Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
  */
 
-import ListItemView from '../../src/list/listitemview';
-import ListItemGroupView from '../../src/list/listitemgroupview';
-import ViewCollection from '../../src/viewcollection';
+import ListItemView from '../../src/list/listitemview.js';
+import ListItemGroupView from '../../src/list/listitemgroupview.js';
+import ViewCollection from '../../src/viewcollection.js';
+import { LabelView, View } from '../../src/index.js';
+import { Locale } from '@ckeditor/ckeditor5-utils';
+import ListSeparatorView from '../../src/list/listseparatorview.js';
 
 describe( 'ListItemGroupView', () => {
-	let view;
+	let view, locale;
 
 	beforeEach( () => {
 		view = new ListItemGroupView();
 		view.label = 'Foo';
+		locale = new Locale();
 
 		return view.render();
 	} );
@@ -29,10 +33,8 @@ describe( 'ListItemGroupView', () => {
 				expect( view.element.classList.contains( 'ck-list__group' ) ).to.be.true;
 			} );
 
-			it( 'creates a label element as a first child', () => {
-				const labelElement = view.element.firstChild;
-
-				expect( labelElement.textContent ).to.equal( 'Foo' );
+			it( 'creates a #labelView element as a first child', () => {
+				expect( view.children.first ).to.equal( view.labelView );
 			} );
 
 			it( 'should have #children view collection with a label and a nested list', () => {
@@ -55,6 +57,59 @@ describe( 'ListItemGroupView', () => {
 					const listElement = view.element.lastChild;
 
 					expect( listElement.attributes[ 'aria-labelledby' ].value ).to.equal( view.element.firstChild.id );
+				} );
+			} );
+
+			describe( '#labelView', () => {
+				it( 'uses LabelView by default', () => {
+					expect( view.labelView ).to.be.instanceOf( LabelView );
+
+					view.set( {
+						label: 'bar'
+					} );
+
+					expect( view.labelView.id ).to.equal( view.children.last.element.getAttribute( 'aria-labelledby' ) );
+					expect( view.labelView.element.textContent ).to.equal( 'bar' );
+				} );
+
+				it( 'accepts a custom label instance that implements the same label interface', () => {
+					class CustomLabel extends View {
+						constructor() {
+							super();
+
+							const bind = this.bindTemplate;
+
+							this.set( {
+								text: undefined,
+								id: '1234'
+							} );
+
+							this.setTemplate( {
+								tag: 'span',
+								attributes: {
+									id: bind.to( 'id' )
+								},
+								children: [
+									{ text: bind.to( 'text' ) }
+								]
+							} );
+						}
+					}
+
+					const view = new ListItemGroupView( locale, new CustomLabel() );
+
+					view.set( {
+						label: 'bar'
+					} );
+
+					view.render();
+
+					expect( view.labelView ).to.be.instanceOf( CustomLabel );
+					expect( view.labelView.element.id ).to.equal( view.children.last.element.getAttribute( 'aria-labelledby' ) );
+					expect( view.children.last.element.getAttribute( 'aria-labelledby' ) ).to.equal( '1234' );
+					expect( view.labelView.element.textContent ).to.equal( 'bar' );
+
+					view.destroy();
 				} );
 			} );
 		} );
@@ -105,6 +160,28 @@ describe( 'ListItemGroupView', () => {
 
 			view.focus();
 			sinon.assert.calledOnce( spy );
+		} );
+
+		it( 'focuses the first view in #items which is not a separator', () => {
+			const childListSeparatorView = new ListSeparatorView();
+			view.items.add( childListSeparatorView );
+
+			const childListItemView = new ListItemView();
+			view.items.add( childListItemView );
+
+			const spyItem = sinon.spy( childListItemView, 'focus' );
+
+			view.focus();
+			sinon.assert.calledOnce( spyItem );
+		} );
+
+		it( 'does not throw if #items include only a separator', () => {
+			expect( () => {
+				const childListSeparatorView = new ListSeparatorView();
+				view.items.add( childListSeparatorView );
+
+				view.focus();
+			} ).to.not.throw();
 		} );
 
 		it( 'does not throw if #items are empty', () => {

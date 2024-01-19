@@ -1,4 +1,4 @@
-# Copyright (c) 2003-2023, CKSource Holding sp. z o.o. All rights reserved.
+# Copyright (c) 2003-2024, CKSource Holding sp. z o.o. All rights reserved.
 #
 #                                     !!! IMPORTANT !!!
 #
@@ -119,7 +119,7 @@ msgstr "Barra de ferramentas de bloco do Editor"
 
 msgctxt "Accessible label of a balloon toolbar that shows up right next to the user selection (the caret)."
 msgid "Editor contextual toolbar"
-msgstr "Barra de ferramentas contextuais do Editor"
+msgstr "Barra de ferramentas contextual do Editor"
 
 msgctxt "Label of an input field for typing colors in the HEX color format."
 msgid "HEX"
@@ -136,3 +136,11 @@ msgstr "Nenhum resultado encontrado"
 msgctxt "The main text of the message shown to the user when no results are available."
 msgid "No searchable items"
 msgstr "Sem itens pesquisáveis"
+
+msgctxt "A default label of a dialog window displayed on top the editor."
+msgid "Editor dialog"
+msgstr "Diálogo do editor"
+
+msgctxt "The label and the tooltip for the close button in the dialog header."
+msgid "Close"
+msgstr "Fechar"
